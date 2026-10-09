@@ -14,6 +14,7 @@ import { ReceiptModal, CompletedOrderData } from "@/components/ReceiptModal";
 import { BottomNavBar, ActiveTab } from "@/components/BottomNavBar";
 import { DashboardView } from "@/components/DashboardView";
 import { OrderHistoryView } from "@/components/OrderHistoryView";
+import { DailyClosingModal } from "@/components/DailyClosingModal";
 import {
   Coffee,
   Search,
@@ -42,9 +43,11 @@ export default function AppMainPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModalProduct, setActiveModalProduct] = useState<Product | null>(null);
 
-  // Payment and Receipt Modals
+  // Payment, Receipt, and Daily Closing Modals
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
+  const [isClosingOpen, setIsClosingOpen] = useState(false);
+
 
   // Redirect if unauthenticated
   useEffect(() => {
@@ -293,7 +296,10 @@ export default function AppMainPage() {
 
       {/* VIEW: DASHBOARD */}
       {activeTab === "dashboard" && (
-        <DashboardView onSelectOrder={handleOpenReceiptFromId} />
+        <DashboardView
+          onSelectOrder={handleOpenReceiptFromId}
+          onOpenClosing={() => setIsClosingOpen(true)}
+        />
       )}
 
       {/* VIEW: ORDER HISTORY */}
@@ -339,6 +345,13 @@ export default function AppMainPage() {
         order={completedOrder}
         onClose={() => setCompletedOrder(null)}
       />
+
+      {/* Daily Cash Balancing & Closing Modal */}
+      <DailyClosingModal
+        isOpen={isClosingOpen}
+        onClose={() => setIsClosingOpen(false)}
+      />
     </div>
   );
 }
+

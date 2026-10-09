@@ -10,7 +10,8 @@ import {
   Award,
   RefreshCw,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Moon
 } from "lucide-react";
 import {
   BarChart,
@@ -60,9 +61,11 @@ interface DashboardData {
 
 interface DashboardViewProps {
   onSelectOrder?: (orderId: string) => void;
+  onOpenClosing?: () => void;
 }
 
-export function DashboardView({ onSelectOrder }: DashboardViewProps) {
+export function DashboardView({ onSelectOrder, onOpenClosing }: DashboardViewProps) {
+
   const { token } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,8 +178,33 @@ export function DashboardView({ onSelectOrder }: DashboardViewProps) {
         </div>
       </div>
 
+      {/* End-of-Day Balancing CTA */}
+      <button
+        onClick={onOpenClosing}
+        className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-[#1C2026] to-[#181B1F] border border-indigo-700/40 hover:border-indigo-500/60 text-left flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer shadow-md"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-950/80 text-indigo-400 border border-indigo-700/50 flex items-center justify-center">
+            <Moon className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>Daily Cash Balancing</span>
+              <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-indigo-900/60 text-indigo-300">
+                Shift Close
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-400">
+              Count drawer cash & verify variance
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-stone-400" />
+      </button>
+
       {/* Payment Split Cards (Cash vs GCash) */}
       <div className="grid grid-cols-2 gap-3">
+
         {/* Cash Card */}
         <div className="p-4 rounded-2xl bg-[#1C2025] border border-[#2B313A] shadow-md flex flex-col justify-between">
           <div className="flex items-center gap-2 mb-2">

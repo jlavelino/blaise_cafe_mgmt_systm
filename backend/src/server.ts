@@ -6,6 +6,7 @@ import categoryRoutes from "./routes/categoryRoutes";
 import productRoutes from "./routes/productRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import dashboardRoutes from "./routes/dashboardRoutes";
+import closingRoutes from "./routes/closingRoutes";
 
 dotenv.config();
 
@@ -38,6 +39,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/closing", closingRoutes);
+
 
 
 
