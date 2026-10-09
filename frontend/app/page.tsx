@@ -9,6 +9,8 @@ import { CategoryPills } from "@/components/CategoryPills";
 import { ProductCard } from "@/components/ProductCard";
 import { SizeSelectorModal } from "@/components/SizeSelectorModal";
 import { CartTray } from "@/components/CartTray";
+import { PaymentModal } from "@/components/PaymentModal";
+import { ReceiptModal, CompletedOrderData } from "@/components/ReceiptModal";
 import {
   Coffee,
   Search,
@@ -22,7 +24,7 @@ import {
 export default function POSTerminalPage() {
   const router = useRouter();
   const { user, token, loading: authLoading, logout } = useAuth();
-  const { addItem } = useCart();
+  const { items, subtotal, addItem, clearCart, setIsCartOpen } = useCart();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,6 +34,11 @@ export default function POSTerminalPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModalProduct, setActiveModalProduct] = useState<Product | null>(null);
+
+  // Phase 5: Payment and Receipt Modals
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
+
 
   // Redirect if unauthenticated
   useEffect(() => {
@@ -268,7 +275,32 @@ export default function POSTerminalPage() {
       />
 
       {/* Floating Bottom Cart Tray */}
-      <CartTray />
+      <CartTray
+        onProceedToCheckout={() => {
+          setIsCartOpen(false);
+          setIsPaymentOpen(true);
+        }}
+      />
+
+      {/* Payment & Checkout Modal */}
+      <PaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        subtotal={subtotal}
+        items={items}
+        onOrderCompleted={(order) => {
+          setIsPaymentOpen(false);
+          setCompletedOrder(order);
+          clearCart();
+        }}
+      />
+
+      {/* Sale Confirmation Receipt Modal */}
+      <ReceiptModal
+        order={completedOrder}
+        onClose={() => setCompletedOrder(null)}
+      />
     </div>
   );
 }
+
