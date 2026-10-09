@@ -2,6 +2,10 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes";
+import categoryRoutes from "./routes/categoryRoutes";
+import productRoutes from "./routes/productRoutes";
+import orderRoutes from "./routes/orderRoutes";
+import dashboardRoutes from "./routes/dashboardRoutes";
 
 dotenv.config();
 
@@ -28,8 +32,16 @@ app.get("/api/health", (_req: Request, res: Response) => {
   });
 });
 
-// Authentication Routes
+// API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+
+
+
+
 
 // Centralized 404 Route Handler
 app.use((_req: Request, res: Response) => {

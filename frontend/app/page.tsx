@@ -1,87 +1,160 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { Category, Product, ProductVariant } from "@/types";
+import { CategoryPills } from "@/components/CategoryPills";
+import { ProductCard } from "@/components/ProductCard";
+import { SizeSelectorModal } from "@/components/SizeSelectorModal";
+import { CartTray } from "@/components/CartTray";
+import { PaymentModal } from "@/components/PaymentModal";
+import { ReceiptModal, CompletedOrderData } from "@/components/ReceiptModal";
+import { BottomNavBar, ActiveTab } from "@/components/BottomNavBar";
+import { DashboardView } from "@/components/DashboardView";
+import { OrderHistoryView } from "@/components/OrderHistoryView";
 import {
   Coffee,
+  Search,
+  X,
   LogOut,
-  ShieldCheck,
-  CheckCircle2,
-  Server,
-  Smartphone,
-  Database,
-  ArrowRight
+  RefreshCw,
+  Sparkles,
+  AlertCircle
 } from "lucide-react";
 
-interface BackendOwnerProfile {
-  id: string;
-  email: string;
-  role: string;
-  lastSignInAt: string;
-}
-
-export default function HomePage() {
+export default function AppMainPage() {
   const router = useRouter();
-  const { user, token, loading, logout } = useAuth();
-  const [backendStatus, setBackendStatus] = useState<{
-    verified: boolean;
-    data?: BackendOwnerProfile;
-    error?: string;
-  } | null>(null);
-  const [testingApi, setTestingApi] = useState(false);
+  const { user, token, loading: authLoading, logout } = useAuth();
+  const { items, subtotal, addItem, clearCart, setIsCartOpen } = useCart();
 
-  // Redirect to login if unauthenticated
+  // Navigation tab state
+  const [activeTab, setActiveTab] = useState<ActiveTab>("pos");
+
+  // Menu states
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingMenu, setLoadingMenu] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeModalProduct, setActiveModalProduct] = useState<Product | null>(null);
+
+  // Payment and Receipt Modals
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
+
+  // Redirect if unauthenticated
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       router.replace("/login");
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  // Verify token against Express backend /api/auth/me
+  // Fetch Menu from Express Backend
+  const loadMenu = async () => {
+    if (!token) return;
+    setLoadingMenu(true);
+    setFetchError(null);
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+    try {
+      const [catsRes, prodsRes] = await Promise.all([
+        fetch(`${apiUrl}/categories`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${apiUrl}/products`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const [catsData, prodsData] = await Promise.all([
+        catsRes.json(),
+        prodsRes.json()
+      ]);
+
+      if (catsRes.ok && catsData.success) {
+        setCategories(catsData.data);
+      } else {
+        throw new Error(catsData.message || "Failed to load categories");
+      }
+
+      if (prodsRes.ok && prodsData.success) {
+        setProducts(prodsData.data);
+      } else {
+        throw new Error(prodsData.message || "Failed to load products");
+      }
+    } catch (err: unknown) {
+      console.error("Error loading menu:", err);
+      setFetchError(
+        err instanceof Error ? err.message : "Could not reach the Express backend."
+      );
+    } finally {
+      setLoadingMenu(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
-      setTestingApi(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      
-      fetch(`${apiUrl}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-        .then(async (res) => {
-          const json = await res.json();
-          if (res.ok && json.success) {
-            setBackendStatus({ verified: true, data: json.data });
-          } else {
-            setBackendStatus({
-              verified: false,
-              error: json.message || "Failed to verify with backend"
-            });
-          }
-        })
-        .catch((err) => {
-          setBackendStatus({
-            verified: false,
-            error: "Could not reach Express backend (ensure server is running on port 5000)"
-          });
-        })
-        .finally(() => {
-          setTestingApi(false);
-        });
+      loadMenu();
     }
   }, [token]);
 
-  if (loading || !user) {
+  // Handle opening an order receipt by ID (e.g. from Dashboard recent list)
+  const handleOpenReceiptFromId = async (orderId: string) => {
+    if (!token) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    try {
+      const res = await fetch(`${apiUrl}/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setCompletedOrder(json.data);
+      }
+    } catch (err) {
+      console.error("Failed to load receipt:", err);
+    }
+  };
+
+  // Filter products by selected category and search term
+  const filteredProducts = useMemo(() => {
+    return products.filter((prod) => {
+      const matchesCategory =
+        selectedCategoryId === null || prod.categoryId === selectedCategoryId;
+      const matchesSearch =
+        searchQuery.trim() === "" ||
+        prod.name.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+        prod.category?.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, selectedCategoryId, searchQuery]);
+
+  // Calculate product counts per category
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const prod of products) {
+      counts[prod.categoryId] = (counts[prod.categoryId] || 0) + 1;
+    }
+    return counts;
+  }, [products]);
+
+  // Handle adding variant to cart
+  const handleSelectVariant = (product: Product, variant: ProductVariant) => {
+    addItem(product, variant);
+  };
+
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#121416]">
         <div className="flex flex-col items-center gap-3">
           <div className="p-4 rounded-full bg-[#1F2327] border border-[#2D3238] shadow-lg animate-pulse">
             <Coffee className="w-8 h-8 text-[#C8A882]" />
           </div>
-          <p className="text-sm text-stone-400 font-medium">
-            Verifying owner session...
-          </p>
+          <p className="text-sm text-stone-400 font-medium">Authenticating...</p>
         </div>
       </div>
     );
@@ -89,135 +162,183 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#121416] text-[#F3F4F6] flex flex-col">
-      {/* Top Mobile App Bar */}
-      <header className="sticky top-0 z-40 bg-[#16181A]/95 backdrop-blur-md border-b border-[#282C32] px-4 py-3 flex items-center justify-between">
+      {/* Top App Header */}
+      <header className="sticky top-0 z-30 bg-[#16181A]/95 backdrop-blur-md border-b border-[#262A30] px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2A2F35] to-[#1C1F22] border border-[#3E454F] flex items-center justify-center shadow-md">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#292E34] to-[#1C1F22] border border-[#3E454F] flex items-center justify-center shadow-md">
             <Coffee className="w-5 h-5 text-[#C8A882]" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-white leading-tight">
+            <h1 className="text-sm font-extrabold text-white leading-tight">
               BLAISE CAFÉ
             </h1>
-            <p className="text-[10px] uppercase font-semibold text-[#C8A882] tracking-wider">
-              Owner POS Terminal
+            <p className="text-[10px] uppercase font-bold text-[#C8A882] tracking-wider">
+              {activeTab === "pos" ? "POS Register" : activeTab === "dashboard" ? "Sales Analytics" : "Order Ledger"}
             </p>
           </div>
         </div>
 
-        <button
-          onClick={logout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#22262B] border border-[#333841] text-xs font-medium text-stone-300 hover:text-white hover:bg-red-950/40 hover:border-red-900 transition-colors"
-          title="Sign Out"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Logout</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          {activeTab === "pos" && (
+            <button
+              onClick={loadMenu}
+              className="p-2 rounded-xl bg-[#20242A] border border-[#2F353E] text-stone-300 hover:text-white transition-colors"
+              title="Refresh Menu"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingMenu ? "animate-spin" : ""}`} />
+            </button>
+          )}
+
+          <button
+            onClick={logout}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#20242A] border border-[#2F353E] text-xs font-semibold text-stone-300 hover:text-red-400 transition-colors"
+            title="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Logout</span>
+          </button>
+        </div>
       </header>
 
-      {/* Main Content (Mobile Optimized Container) */}
-      <main className="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-5">
-        {/* Welcome Card */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1C1F23] to-[#17191C] border border-[#2C3138] shadow-xl">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                Owner Authenticated
-              </span>
+      {/* VIEW: POS REGISTER */}
+      {activeTab === "pos" && (
+        <main className="max-w-md w-full mx-auto flex flex-col flex-1 pb-36">
+          {/* Search Bar */}
+          <div className="px-4 pt-3.5 pb-2">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search drinks or snacks..."
+                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#191C20] border border-[#2C3138] text-white text-xs placeholder-stone-500 focus:outline-none focus:border-[#C8A882] focus:ring-1 focus:ring-[#C8A882]/40 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            <ShieldCheck className="w-4 h-4 text-[#C8A882]" />
           </div>
 
-          <h2 className="text-lg font-bold text-white">
-            Welcome, {user.email?.split("@")[0]}! ☕
-          </h2>
-          <p className="text-xs text-stone-400 mt-0.5">
-            Logged in as: <span className="text-stone-300 font-mono">{user.email}</span>
-          </p>
-        </div>
-
-        {/* Phase 3 Backend Verification Badge */}
-        <div className="p-5 rounded-2xl bg-[#181B1E] border border-[#2A2E35] space-y-4">
-          <div className="flex items-center gap-2">
-            <Server className="w-4 h-4 text-[#C8A882]" />
-            <h3 className="text-sm font-bold text-white tracking-wide">
-              Full-Stack Security Handshake
-            </h3>
+          {/* Category Pills (Sticky) */}
+          <div className="sticky top-[53px] z-20 bg-[#121416]/95 backdrop-blur-md pt-1 pb-2 border-b border-[#22262B]">
+            <CategoryPills
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
+              onSelectCategory={setSelectedCategoryId}
+              categoryCounts={categoryCounts}
+              totalCount={products.length}
+            />
           </div>
 
-          <p className="text-xs text-stone-400 leading-relaxed">
-            Your Next.js client sent your Supabase JWT to the Express backend (<code>/api/auth/me</code>). The backend middleware verified your token and confirmed your single-owner access.
-          </p>
-
-          {testingApi ? (
-            <div className="p-3.5 rounded-xl bg-[#131517] border border-[#24282E] text-xs text-stone-400 flex items-center gap-2">
-              <span className="w-3 h-3 border-2 border-[#C8A882] border-t-transparent rounded-full animate-spin" />
-              <span>Verifying JWT with Express backend...</span>
-            </div>
-          ) : backendStatus?.verified ? (
-            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/50 text-xs space-y-1.5">
-              <div className="flex items-center gap-2 text-emerald-300 font-semibold">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Express API Handshake Verified!</span>
+          {/* Product Grid Area */}
+          <div className="flex-1 px-4 pt-4">
+            {fetchError ? (
+              <div className="p-4 rounded-2xl bg-red-950/30 border border-red-800/50 text-center space-y-2 my-6">
+                <AlertCircle className="w-6 h-6 text-red-400 mx-auto" />
+                <h3 className="text-xs font-bold text-red-200">Unable to load menu</h3>
+                <p className="text-[11px] text-stone-400">{fetchError}</p>
+                <button
+                  onClick={loadMenu}
+                  className="mt-2 px-3 py-1.5 text-xs font-bold bg-red-900/60 hover:bg-red-800 text-white rounded-lg transition-colors"
+                >
+                  Retry
+                </button>
               </div>
-              <div className="text-[11px] text-stone-300 font-mono pl-6">
-                Status: 200 OK • Role: {backendStatus.data?.role} • Express Protected
+            ) : loadingMenu ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[...Array(6)].map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-32 rounded-2xl bg-[#191C20] border border-[#2A2E35] animate-pulse p-3.5 flex flex-col justify-between"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-stone-800/60" />
+                    <div className="space-y-1.5">
+                      <div className="h-3 bg-stone-800/80 rounded w-4/5" />
+                      <div className="h-2.5 bg-stone-800/50 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ) : (
-            <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/50 text-xs text-amber-200 space-y-1">
-              <p className="font-semibold">⚠️ Backend Check Pending</p>
-              <p className="text-[11px] text-stone-300">{backendStatus?.error || "Make sure backend server is running."}</p>
-            </div>
-          )}
-        </div>
-
-        {/* System Architecture Overview */}
-        <div className="p-4 rounded-xl bg-[#151719] border border-[#23272D] space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-            System Status
-          </p>
-
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="p-2.5 rounded-lg bg-[#1B1E22] border border-[#2A2E35]">
-              <Smartphone className="w-4 h-4 text-[#C8A882] mx-auto mb-1" />
-              <div className="text-[11px] font-bold text-white">Next.js</div>
-              <div className="text-[9px] text-emerald-400">Port 3000</div>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-[#1B1E22] border border-[#2A2E35]">
-              <Server className="w-4 h-4 text-[#C8A882] mx-auto mb-1" />
-              <div className="text-[11px] font-bold text-white">Express API</div>
-              <div className="text-[9px] text-emerald-400">Port 5000</div>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-[#1B1E22] border border-[#2A2E35]">
-              <Database className="w-4 h-4 text-[#C8A882] mx-auto mb-1" />
-              <div className="text-[11px] font-bold text-white">Supabase</div>
-              <div className="text-[9px] text-emerald-400">PostgreSQL</div>
-            </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-12 space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-[#1C1F23] border border-[#2A2E35] flex items-center justify-center mx-auto text-stone-500">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <p className="text-xs font-bold text-stone-300">No items found</p>
+                <p className="text-[11px] text-stone-500">
+                  Try searching with another keyword or select All Items.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onSelectProduct={(p) => setActiveModalProduct(p)}
+                    onDirectAdd={handleSelectVariant}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </main>
+      )}
 
-        {/* Phase 4 Preview Card */}
-        <div className="p-4 rounded-xl bg-gradient-to-r from-[#21252A] to-[#1A1D20] border border-[#30363F] flex items-center justify-between">
-          <div>
-            <div className="text-[10px] uppercase font-bold text-[#C8A882] tracking-wider">
-              Next in Line
-            </div>
-            <div className="text-xs font-semibold text-white mt-0.5">
-              Phase 4: Product Catalog & POS Grid
-            </div>
-            <div className="text-[11px] text-stone-400">
-              41 menu variants ready to display
-            </div>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-[#C8A882]/10 border border-[#C8A882]/30 flex items-center justify-center text-[#C8A882]">
-            <ArrowRight className="w-4 h-4" />
-          </div>
-        </div>
-      </main>
+      {/* VIEW: DASHBOARD */}
+      {activeTab === "dashboard" && (
+        <DashboardView onSelectOrder={handleOpenReceiptFromId} />
+      )}
+
+      {/* VIEW: ORDER HISTORY */}
+      {activeTab === "orders" && (
+        <OrderHistoryView onSelectOrder={(order) => setCompletedOrder(order)} />
+      )}
+
+      {/* Drink Size Selector Sheet */}
+      <SizeSelectorModal
+        product={activeModalProduct}
+        onClose={() => setActiveModalProduct(null)}
+        onSelectVariant={handleSelectVariant}
+      />
+
+      {/* Floating Bottom Cart Tray (Only when on POS tab) */}
+      {activeTab === "pos" && (
+        <CartTray
+          onProceedToCheckout={() => {
+            setIsCartOpen(false);
+            setIsPaymentOpen(true);
+          }}
+        />
+      )}
+
+      {/* Bottom Tab Navigation Bar */}
+      <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Payment & Checkout Modal */}
+      <PaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        subtotal={subtotal}
+        items={items}
+        onOrderCompleted={(order) => {
+          setIsPaymentOpen(false);
+          setCompletedOrder(order);
+          clearCart();
+        }}
+      />
+
+      {/* Sale Confirmation Receipt Modal */}
+      <ReceiptModal
+        order={completedOrder}
+        onClose={() => setCompletedOrder(null)}
+      />
     </div>
   );
 }
