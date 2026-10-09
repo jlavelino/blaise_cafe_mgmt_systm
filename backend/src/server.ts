@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import authRoutes from "./routes/authRoutes";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(
 );
 app.use(express.json());
 
+
 // Health Check Endpoint
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({
@@ -25,6 +27,9 @@ app.get("/api/health", (_req: Request, res: Response) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Authentication Routes
+app.use("/api/auth", authRoutes);
 
 // Centralized 404 Route Handler
 app.use((_req: Request, res: Response) => {
