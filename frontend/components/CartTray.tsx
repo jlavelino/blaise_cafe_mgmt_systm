@@ -141,8 +141,8 @@ export function CartTray({ onProceedToCheckout }: CartTrayProps) {
         </div>
       )}
 
-      {/* Floating Bottom Bar (Sticky) */}
-      <div className="fixed bottom-0 inset-x-0 z-40 p-3 max-w-md mx-auto pointer-events-none">
+      {/* Floating Bottom Bar (Sticky above Bottom Nav) */}
+      <div className="fixed bottom-16 inset-x-0 z-30 p-3 max-w-md mx-auto pointer-events-none">
         <div
           onClick={() => setIsCartOpen(true)}
           className="pointer-events-auto bg-gradient-to-r from-[#1E2227] to-[#181B1F] border border-[#343A43] hover:border-[#C8A882]/70 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between cursor-pointer transition-all active:scale-[0.99]"

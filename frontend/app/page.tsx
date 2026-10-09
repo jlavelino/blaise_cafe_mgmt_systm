@@ -11,6 +11,9 @@ import { SizeSelectorModal } from "@/components/SizeSelectorModal";
 import { CartTray } from "@/components/CartTray";
 import { PaymentModal } from "@/components/PaymentModal";
 import { ReceiptModal, CompletedOrderData } from "@/components/ReceiptModal";
+import { BottomNavBar, ActiveTab } from "@/components/BottomNavBar";
+import { DashboardView } from "@/components/DashboardView";
+import { OrderHistoryView } from "@/components/OrderHistoryView";
 import {
   Coffee,
   Search,
@@ -21,11 +24,15 @@ import {
   AlertCircle
 } from "lucide-react";
 
-export default function POSTerminalPage() {
+export default function AppMainPage() {
   const router = useRouter();
   const { user, token, loading: authLoading, logout } = useAuth();
   const { items, subtotal, addItem, clearCart, setIsCartOpen } = useCart();
 
+  // Navigation tab state
+  const [activeTab, setActiveTab] = useState<ActiveTab>("pos");
+
+  // Menu states
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
@@ -35,10 +42,9 @@ export default function POSTerminalPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModalProduct, setActiveModalProduct] = useState<Product | null>(null);
 
-  // Phase 5: Payment and Receipt Modals
+  // Payment and Receipt Modals
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
-
 
   // Redirect if unauthenticated
   useEffect(() => {
@@ -97,6 +103,23 @@ export default function POSTerminalPage() {
     }
   }, [token]);
 
+  // Handle opening an order receipt by ID (e.g. from Dashboard recent list)
+  const handleOpenReceiptFromId = async (orderId: string) => {
+    if (!token) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    try {
+      const res = await fetch(`${apiUrl}/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setCompletedOrder(json.data);
+      }
+    } catch (err) {
+      console.error("Failed to load receipt:", err);
+    }
+  };
+
   // Filter products by selected category and search term
   const filteredProducts = useMemo(() => {
     return products.filter((prod) => {
@@ -138,7 +161,7 @@ export default function POSTerminalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#121416] text-[#F3F4F6] flex flex-col pb-28">
+    <div className="min-h-screen bg-[#121416] text-[#F3F4F6] flex flex-col">
       {/* Top App Header */}
       <header className="sticky top-0 z-30 bg-[#16181A]/95 backdrop-blur-md border-b border-[#262A30] px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -150,19 +173,21 @@ export default function POSTerminalPage() {
               BLAISE CAFÉ
             </h1>
             <p className="text-[10px] uppercase font-bold text-[#C8A882] tracking-wider">
-              POS Terminal
+              {activeTab === "pos" ? "POS Register" : activeTab === "dashboard" ? "Sales Analytics" : "Order Ledger"}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={loadMenu}
-            className="p-2 rounded-xl bg-[#20242A] border border-[#2F353E] text-stone-300 hover:text-white transition-colors"
-            title="Refresh Menu"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingMenu ? "animate-spin" : ""}`} />
-          </button>
+          {activeTab === "pos" && (
+            <button
+              onClick={loadMenu}
+              className="p-2 rounded-xl bg-[#20242A] border border-[#2F353E] text-stone-300 hover:text-white transition-colors"
+              title="Refresh Menu"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingMenu ? "animate-spin" : ""}`} />
+            </button>
+          )}
 
           <button
             onClick={logout}
@@ -175,97 +200,106 @@ export default function POSTerminalPage() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-md w-full mx-auto flex flex-col flex-1">
-        {/* Search Bar */}
-        <div className="px-4 pt-3.5 pb-2">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search drinks or snacks..."
-              className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#191C20] border border-[#2C3138] text-white text-xs placeholder-stone-500 focus:outline-none focus:border-[#C8A882] focus:ring-1 focus:ring-[#C8A882]/40 transition-all"
+      {/* VIEW: POS REGISTER */}
+      {activeTab === "pos" && (
+        <main className="max-w-md w-full mx-auto flex flex-col flex-1 pb-36">
+          {/* Search Bar */}
+          <div className="px-4 pt-3.5 pb-2">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search drinks or snacks..."
+                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#191C20] border border-[#2C3138] text-white text-xs placeholder-stone-500 focus:outline-none focus:border-[#C8A882] focus:ring-1 focus:ring-[#C8A882]/40 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Category Pills (Sticky) */}
+          <div className="sticky top-[53px] z-20 bg-[#121416]/95 backdrop-blur-md pt-1 pb-2 border-b border-[#22262B]">
+            <CategoryPills
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
+              onSelectCategory={setSelectedCategoryId}
+              categoryCounts={categoryCounts}
+              totalCount={products.length}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-1"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+          </div>
+
+          {/* Product Grid Area */}
+          <div className="flex-1 px-4 pt-4">
+            {fetchError ? (
+              <div className="p-4 rounded-2xl bg-red-950/30 border border-red-800/50 text-center space-y-2 my-6">
+                <AlertCircle className="w-6 h-6 text-red-400 mx-auto" />
+                <h3 className="text-xs font-bold text-red-200">Unable to load menu</h3>
+                <p className="text-[11px] text-stone-400">{fetchError}</p>
+                <button
+                  onClick={loadMenu}
+                  className="mt-2 px-3 py-1.5 text-xs font-bold bg-red-900/60 hover:bg-red-800 text-white rounded-lg transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : loadingMenu ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[...Array(6)].map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-32 rounded-2xl bg-[#191C20] border border-[#2A2E35] animate-pulse p-3.5 flex flex-col justify-between"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-stone-800/60" />
+                    <div className="space-y-1.5">
+                      <div className="h-3 bg-stone-800/80 rounded w-4/5" />
+                      <div className="h-2.5 bg-stone-800/50 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-12 space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-[#1C1F23] border border-[#2A2E35] flex items-center justify-center mx-auto text-stone-500">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <p className="text-xs font-bold text-stone-300">No items found</p>
+                <p className="text-[11px] text-stone-500">
+                  Try searching with another keyword or select All Items.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onSelectProduct={(p) => setActiveModalProduct(p)}
+                    onDirectAdd={handleSelectVariant}
+                  />
+                ))}
+              </div>
             )}
           </div>
-        </div>
+        </main>
+      )}
 
-        {/* Category Pills (Sticky) */}
-        <div className="sticky top-[53px] z-20 bg-[#121416]/95 backdrop-blur-md pt-1 pb-2 border-b border-[#22262B]">
-          <CategoryPills
-            categories={categories}
-            selectedCategoryId={selectedCategoryId}
-            onSelectCategory={setSelectedCategoryId}
-            categoryCounts={categoryCounts}
-            totalCount={products.length}
-          />
-        </div>
+      {/* VIEW: DASHBOARD */}
+      {activeTab === "dashboard" && (
+        <DashboardView onSelectOrder={handleOpenReceiptFromId} />
+      )}
 
-        {/* Product Grid Area */}
-        <div className="flex-1 px-4 pt-4">
-          {fetchError ? (
-            <div className="p-4 rounded-2xl bg-red-950/30 border border-red-800/50 text-center space-y-2 my-6">
-              <AlertCircle className="w-6 h-6 text-red-400 mx-auto" />
-              <h3 className="text-xs font-bold text-red-200">Unable to load menu</h3>
-              <p className="text-[11px] text-stone-400">{fetchError}</p>
-              <button
-                onClick={loadMenu}
-                className="mt-2 px-3 py-1.5 text-xs font-bold bg-red-900/60 hover:bg-red-800 text-white rounded-lg transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          ) : loadingMenu ? (
-            /* Loading Skeleton */
-            <div className="grid grid-cols-2 gap-3">
-              {[...Array(6)].map((_, idx) => (
-                <div
-                  key={idx}
-                  className="h-32 rounded-2xl bg-[#191C20] border border-[#2A2E35] animate-pulse p-3.5 flex flex-col justify-between"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-stone-800/60" />
-                  <div className="space-y-1.5">
-                    <div className="h-3 bg-stone-800/80 rounded w-4/5" />
-                    <div className="h-2.5 bg-stone-800/50 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            /* Empty State */
-            <div className="text-center py-12 space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-[#1C1F23] border border-[#2A2E35] flex items-center justify-center mx-auto text-stone-500">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-bold text-stone-300">No items found</p>
-              <p className="text-[11px] text-stone-500">
-                Try searching with another keyword or select All Items.
-              </p>
-            </div>
-          ) : (
-            /* Active 2-Column Product Grid */
-            <div className="grid grid-cols-2 gap-3">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onSelectProduct={(p) => setActiveModalProduct(p)}
-                  onDirectAdd={handleSelectVariant}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+      {/* VIEW: ORDER HISTORY */}
+      {activeTab === "orders" && (
+        <OrderHistoryView onSelectOrder={(order) => setCompletedOrder(order)} />
+      )}
 
       {/* Drink Size Selector Sheet */}
       <SizeSelectorModal
@@ -274,13 +308,18 @@ export default function POSTerminalPage() {
         onSelectVariant={handleSelectVariant}
       />
 
-      {/* Floating Bottom Cart Tray */}
-      <CartTray
-        onProceedToCheckout={() => {
-          setIsCartOpen(false);
-          setIsPaymentOpen(true);
-        }}
-      />
+      {/* Floating Bottom Cart Tray (Only when on POS tab) */}
+      {activeTab === "pos" && (
+        <CartTray
+          onProceedToCheckout={() => {
+            setIsCartOpen(false);
+            setIsPaymentOpen(true);
+          }}
+        />
+      )}
+
+      {/* Bottom Tab Navigation Bar */}
+      <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Payment & Checkout Modal */}
       <PaymentModal
@@ -303,4 +342,3 @@ export default function POSTerminalPage() {
     </div>
   );
 }
-

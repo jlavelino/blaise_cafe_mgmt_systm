@@ -5,6 +5,7 @@ import authRoutes from "./routes/authRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import productRoutes from "./routes/productRoutes";
 import orderRoutes from "./routes/orderRoutes";
+import dashboardRoutes from "./routes/dashboardRoutes";
 
 dotenv.config();
 
@@ -36,6 +37,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+
 
 
 
