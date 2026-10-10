@@ -184,9 +184,7 @@ export default function AppMainPage() {
                 ? "Owner Dashboard"
                 : activeTab === "pos"
                 ? "New Order POS"
-                : activeTab === "orders"
-                ? "Orders Queue"
-                : "Sales Reports"}
+                : "Orders Queue"}
             </p>
           </div>
         </div>
@@ -202,13 +200,12 @@ export default function AppMainPage() {
             </button>
           )}
 
-          <button
-            onClick={() => setActiveTab("reports")}
-            className="p-2 rounded-full bg-white border border-[#EFE8DE] text-[#8C7B70] hover:text-[#6F452A] transition-colors shadow-xs cursor-pointer"
-            title="Notifications & Reports"
+          <div
+            className="p-2 rounded-full bg-white border border-[#EFE8DE] text-[#8C7B70] shadow-xs"
+            title="System Active"
           >
             <Bell className="w-3.5 h-3.5" />
-          </button>
+          </div>
 
           <button
             onClick={logout}
@@ -324,15 +321,6 @@ export default function AppMainPage() {
       {/* VIEW: ORDER HISTORY / ORDERS QUEUE */}
       {activeTab === "orders" && (
         <OrderHistoryView onSelectOrder={(order) => setCompletedOrder(order)} />
-      )}
-
-      {/* VIEW: SALES REPORTS */}
-      {activeTab === "reports" && (
-        <DashboardView
-          onSelectOrder={handleOpenReceiptFromId}
-          onOpenClosing={() => setIsClosingOpen(true)}
-          onNavigateToPOS={() => setActiveTab("pos")}
-        />
       )}
 
       {/* Drink Size Selector Sheet */}

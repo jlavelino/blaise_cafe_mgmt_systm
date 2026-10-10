@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Home, Coffee, Receipt, BarChart3 } from "lucide-react";
+import { Home, Coffee, Receipt } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
-export type ActiveTab = "home" | "pos" | "orders" | "reports";
+export type ActiveTab = "home" | "pos" | "orders";
 
 interface BottomNavBarProps {
   activeTab: ActiveTab;
@@ -31,16 +31,11 @@ export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
       label: "Orders",
       icon: Receipt,
     },
-    {
-      id: "reports" as ActiveTab,
-      label: "Reports",
-      icon: BarChart3,
-    },
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#FBF8F2]/95 backdrop-blur-md border-t border-[#EFE8DE] px-3 py-2 max-w-md mx-auto shadow-cafe">
-      <div className="grid grid-cols-4 gap-1">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#FBF8F2]/95 backdrop-blur-md border-t border-[#EFE8DE] px-4 py-2 max-w-md mx-auto shadow-cafe">
+      <div className="grid grid-cols-3 gap-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -49,7 +44,7 @@ export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`relative flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all cursor-pointer ${
+              className={`relative flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition-all cursor-pointer ${
                 isActive
                   ? "text-[#6F452A] font-bold"
                   : "text-[#8C7B70] hover:text-[#2D1C13] font-medium"
@@ -75,7 +70,7 @@ export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
                 {item.label}
               </span>
               {isActive && (
-                <div className="w-1 h-1 rounded-full bg-[#6F452A] mt-0.5" />
+                <div className="w-1.5 h-1 rounded-full bg-[#6F452A] mt-0.5" />
               )}
             </button>
           );
