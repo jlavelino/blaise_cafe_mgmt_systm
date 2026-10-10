@@ -179,9 +179,23 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
  */
 export async function getOrders(req: Request, res: Response): Promise<void> {
   try {
-    const limit = Math.min(Number(req.query.limit) || 30, 100);
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const dateQuery = req.query.date as string | undefined;
+
+    const whereClause: Prisma.OrderWhereInput = {};
+
+    if (dateQuery && /^\d{4}-\d{2}-\d{2}$/.test(dateQuery)) {
+      const [year, month, day] = dateQuery.split("-").map(Number);
+      const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+      whereClause.createdAt = {
+        gte: startOfDay,
+        lte: endOfDay
+      };
+    }
 
     const orders = await prisma.order.findMany({
+      where: whereClause,
       take: limit,
       orderBy: { createdAt: "desc" },
       include: {
