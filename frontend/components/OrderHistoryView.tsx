@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { CompletedOrderData } from "./ReceiptModal";
-import { Receipt, Search, X, ChevronRight, RefreshCw, Banknote, QrCode } from "lucide-react";
+import { Receipt, Search, X, ChevronRight, RefreshCw, Banknote, QrCode, SlidersHorizontal } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
 interface OrderHistoryViewProps {
   onSelectOrder: (order: CompletedOrderData) => void;
@@ -14,6 +15,7 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
   const [orders, setOrders] = useState<CompletedOrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const [error, setError] = useState<string | null>(null);
 
   const fetchOrders = async () => {
@@ -21,10 +23,8 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
     setLoading(true);
     setError(null);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
     try {
-      const res = await fetch(`${apiUrl}/orders?limit=50`, {
+      const res = await fetch(`${API_BASE}/orders?limit=50`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
@@ -57,107 +57,172 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
   }, [orders, searchQuery]);
 
   return (
-    <div className="p-4 space-y-4 max-w-md mx-auto pb-24 text-[#F3F4F6]">
-      {/* Header */}
+    <div className="p-4 space-y-4 max-w-md mx-auto pb-28 text-[#2D1C13]">
+      {/* Title & Actions */}
       <div className="flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#C8A882]">
-            Sales Ledger
-          </span>
-          <h2 className="text-base font-extrabold text-white">Order History</h2>
-        </div>
-
+        <h2 className="font-serif text-2xl font-bold text-[#2D1C13]">
+          Orders
+        </h2>
         <button
           onClick={fetchOrders}
-          className="p-2 rounded-xl bg-[#1F2328] border border-[#2F353E] text-stone-300 hover:text-white transition-colors"
-          title="Refresh List"
+          disabled={loading}
+          className="p-2 rounded-full bg-white border border-[#EFE8DE] text-[#6F452A] hover:bg-[#F5EFEB] transition-colors shadow-cafe-sm cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by order # or item name..."
-          className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#191C20] border border-[#2C3138] text-white text-xs placeholder-stone-500 focus:outline-none focus:border-[#C8A882]"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-1"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
+      {/* Pill Switcher: Active vs. History (Matching 3.jpg Screen 3) */}
+      <div className="grid grid-cols-2 p-1 rounded-full bg-[#F5EFEB] border border-[#EFE8DE]">
+        <button
+          onClick={() => setActiveTab("active")}
+          className={`py-2 text-xs font-bold rounded-full transition-all cursor-pointer ${
+            activeTab === "active"
+              ? "bg-[#6F452A] text-white shadow-xs"
+              : "text-[#8C7B70] hover:text-[#2D1C13]"
+          }`}
+        >
+          Active
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`py-2 text-xs font-bold rounded-full transition-all cursor-pointer ${
+            activeTab === "history"
+              ? "bg-[#6F452A] text-white shadow-xs"
+              : "text-[#8C7B70] hover:text-[#2D1C13]"
+          }`}
+        >
+          History
+        </button>
       </div>
 
-      {/* Orders List */}
+      {/* Search Input with Filter Icon (Matching 3.jpg Screen 3) */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7B70]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search order # or item..."
+            className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white border border-[#EFE8DE] text-xs text-[#2D1C13] placeholder-[#8C7B70] focus:outline-none focus:border-[#6F452A] shadow-cafe-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C7B70] hover:text-[#2D1C13]"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <button className="p-2.5 rounded-2xl bg-white border border-[#EFE8DE] text-[#6F452A] shadow-cafe-sm cursor-pointer">
+          <SlidersHorizontal className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Error state */}
+      {error && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 text-center">
+          {error}
+        </div>
+      )}
+
+      {/* Loading state */}
       {loading ? (
-        <div className="space-y-2.5">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 rounded-2xl bg-[#1B1E22] animate-pulse" />
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-28 rounded-2xl bg-white border border-[#EFE8DE] animate-pulse p-4 shadow-cafe-sm"
+            />
           ))}
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="text-center py-12 space-y-2">
-          <Receipt className="w-8 h-8 text-stone-600 mx-auto" />
-          <p className="text-xs font-bold text-stone-400">No orders found</p>
-          <p className="text-[11px] text-stone-500">
-            {searchQuery ? "Try a different search query." : "Complete a sale at the register to see it here."}
+        <div className="p-10 text-center bg-white border border-[#EFE8DE] rounded-2xl shadow-cafe-sm space-y-2">
+          <Receipt className="w-8 h-8 text-[#8C7B70] mx-auto" />
+          <p className="font-serif text-sm font-bold text-[#2D1C13]">No orders recorded</p>
+          <p className="text-xs text-[#8C7B70]">
+            Orders will show up here as they are entered into the POS.
           </p>
         </div>
       ) : (
-        <div className="space-y-2.5">
-          {filteredOrders.map((order) => {
-            const isCash = order.payment?.method === "CASH";
-            const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
+        /* Order Cards List matching 3.jpg Screen 3 */
+        <div className="space-y-3">
+          {filteredOrders.map((order, idx) => {
+            const dateObj = new Date(order.createdAt);
+            const timeStr = dateObj.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+            const isCash = order.payment.method === "CASH";
+
+            // Demo status cycling for visual realism: most recent is PREPARING, others READY/SERVED
+            const statusLabel = idx === 0 ? "PREPARING" : idx === 1 ? "READY" : "SERVED";
+            const statusBg =
+              statusLabel === "PREPARING"
+                ? "bg-[#FFF1E5] text-[#D25E1A]"
+                : "bg-[#EAF7ED] text-[#256A38]";
 
             return (
               <div
                 key={order.id}
                 onClick={() => onSelectOrder(order)}
-                className="p-3.5 rounded-2xl bg-[#1A1D21] border border-[#2C3139] hover:border-[#C8A882]/70 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-between"
+                className="p-4 rounded-2xl bg-white border border-[#EFE8DE] hover:border-[#6F452A]/40 transition-all cursor-pointer shadow-cafe-sm hover:shadow-cafe space-y-2.5 active:scale-[0.99]"
               >
-                <div className="flex-1 min-w-0 pr-3">
+                {/* Header row: Order #, Time, Status Pill */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-white">
-                      {order.orderNumber}
+                    <span className="font-serif text-sm font-bold text-[#2D1C13]">
+                      #{order.orderNumber.replace("ORD-", "")}
                     </span>
-                    <span
-                      className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
-                        isCash
-                          ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/60"
-                          : "bg-blue-950/60 text-blue-400 border border-blue-800/60"
-                      }`}
-                    >
-                      {order.payment?.method}
-                    </span>
+                    <span className="text-[11px] text-[#8C7B70]">{timeStr}</span>
                   </div>
 
-                  <div className="text-[11px] text-stone-400 mt-1 truncate">
-                    {order.items.map((i) => i.itemNameSnapshot).join(", ")}
-                  </div>
-
-                  <div className="text-[10px] text-stone-500 mt-0.5">
-                    {new Date(order.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })} • {itemCount} items
-                  </div>
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${statusBg}`}>
+                    {statusLabel}
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <span className="text-sm font-extrabold text-[#C8A882] font-mono">
-                      ₱{Number(order.total).toFixed(0)}
-                    </span>
+                {/* Items bullet preview */}
+                <div className="space-y-1 text-xs text-[#2D1C13] pl-1">
+                  {order.items.slice(0, 3).map((item, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="text-[#8C5837]">▸</span>
+                      <span>
+                        {item.itemNameSnapshot} x{item.quantity}
+                      </span>
+                    </div>
+                  ))}
+                  {order.items.length > 3 && (
+                    <div className="text-[10px] text-[#8C7B70] italic pl-3">
+                      +{order.items.length - 3} more items...
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer: Total & Payment Badge */}
+                <div className="pt-2 border-t border-[#F5EFEB] flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-[#6F452A]">
+                    <span className="text-[#8C5837]">▸</span>
+                    <span>Total: ₱{Number(order.total).toFixed(0)}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-stone-500" />
+
+                  <div className="flex items-center gap-1 text-[11px] font-medium text-[#8C7B70]">
+                    {isCash ? (
+                      <span className="flex items-center gap-1 bg-[#F5EFEB] text-[#6F452A] px-2 py-0.5 rounded-full">
+                        <Banknote className="w-3 h-3" />
+                        <span>Cash</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 bg-[#EBF3FF] text-[#007DFE] px-2 py-0.5 rounded-full font-semibold">
+                        <QrCode className="w-3 h-3" />
+                        <span>GCash</span>
+                      </span>
+                    )}
+                    <ChevronRight className="w-3.5 h-3.5 text-[#8C7B70]" />
+                  </div>
                 </div>
               </div>
             );

@@ -11,9 +11,10 @@ import {
   Minus,
   Plus,
   Loader2,
-  Clock,
-  RotateCcw
+  Calendar,
+  Save
 } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
 interface ClosingPreviewData {
   date: string;
@@ -63,45 +64,51 @@ export function DailyClosingModal({
     20: 0
   });
   const [coinsAmount, setCoinsAmount] = useState<string>("");
-  const [notes, setNotes] = useState<string>("");
 
-  // Input mode: "counter" or "direct"
+  // Direct manual input mode fallback
   const [inputMode, setInputMode] = useState<"counter" | "direct">("counter");
   const [directCash, setDirectCash] = useState<string>("");
 
+  // Notes
+  const [notes, setNotes] = useState<string>("");
+
+  // Fetch preview data on modal open
   const fetchPreview = async () => {
     if (!token) return;
     setLoading(true);
     setErrorMsg(null);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    setSuccessMsg(null);
 
     try {
-      const res = await fetch(`${apiUrl}/closing/preview`, {
+      const res = await fetch(`${API_BASE}/closing/preview`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
+
       if (res.ok && json.success) {
         setData(json.data);
         if (json.data.closingRecord) {
           setDirectCash(String(json.data.closingRecord.actualCash));
+          setNotes(json.data.closingRecord.notes || "");
+          setInputMode("direct");
         }
       } else {
         throw new Error(json.message || "Failed to load closing preview");
       }
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Error connecting to backend");
+      setErrorMsg(err instanceof Error ? err.message : "Error connecting to server");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && token) {
       fetchPreview();
-      setSuccessMsg(null);
     }
   }, [isOpen, token]);
 
+  // Stepper helper
   const updateCount = (denom: number, delta: number) => {
     setCounts((prev) => {
       const current = prev[denom] || 0;
@@ -110,83 +117,98 @@ export function DailyClosingModal({
     });
   };
 
+  // Calculate actual cash from counter or direct input
   const calculatedCashCount = useMemo(() => {
     if (inputMode === "direct") {
       return parseFloat(directCash) || 0;
     }
 
-    let sum = 0;
-    Object.entries(counts).forEach(([denom, count]) => {
-      sum += Number(denom) * count;
-    });
-    sum += parseFloat(coinsAmount) || 0;
-    return sum;
+    const billsTotal = Object.entries(counts).reduce((sum, [denom, qty]) => {
+      return sum + Number(denom) * qty;
+    }, 0);
+
+    const coinsTotal = parseFloat(coinsAmount) || 0;
+    return billsTotal + coinsTotal;
   }, [counts, coinsAmount, inputMode, directCash]);
 
-  if (!isOpen) return null;
-
-  const expectedCash = parseFloat(data?.preview.cashSales || "0");
+  // Financial figures
+  const expectedCash = data ? parseFloat(data.preview.cashSales) : 0;
   const cashDifference = calculatedCashCount - expectedCash;
-  const isExact = cashDifference === 0;
-  const isShortage = cashDifference < 0;
-  const isOverage = cashDifference > 0;
+  const isExact = Math.abs(cashDifference) < 0.01;
+  const isShortage = cashDifference < -0.01;
 
+  const totalSalesNum = data ? parseFloat(data.preview.totalSales) : 0;
+  const gcashGrossNum = data ? parseFloat(data.preview.gcashGross) : 0;
+  const gcashFeesNum = data ? parseFloat(data.preview.gcashFees) : 0;
+  const gcashNetNum = data ? parseFloat(data.preview.gcashNet) : 0;
+  const netSalesNum = expectedCash + gcashNetNum;
+
+  // Submit Handler
   const handleSubmitClosing = async () => {
-    setErrorMsg(null);
-    setSubmitting(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    if (!token) return;
 
+    if (calculatedCashCount < 0) {
+      setErrorMsg("Actual cash counted cannot be negative.");
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      const res = await fetch(`${apiUrl}/closing/submit`, {
+      const res = await fetch(`${API_BASE}/closing/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          actualCash: calculatedCashCount,
+          actualCash: Number(calculatedCashCount.toFixed(2)),
           notes: notes.trim() || undefined
         })
       });
 
       const json = await res.json();
+
       if (res.ok && json.success) {
-        setSuccessMsg("Day successfully closed and recorded!");
+        setSuccessMsg("Daily closing recorded successfully!");
         if (onSuccess) onSuccess();
-        fetchPreview();
+        setTimeout(() => {
+          onClose();
+        }, 1200);
       } else {
         throw new Error(json.message || "Failed to submit daily closing");
       }
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to record closing");
+      setErrorMsg(err instanceof Error ? err.message : "Error saving closing report");
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-[#181B1F] border-t border-x border-[#2C3138] rounded-t-3xl p-5 shadow-2xl z-10 animate-in slide-in-from-bottom-5 duration-200 text-[#F3F4F6] max-h-[92vh] overflow-y-auto">
-        {/* Handle Bar */}
-        <div className="w-12 h-1 bg-stone-600 rounded-full mx-auto mb-3" />
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white border-t sm:border border-[#EFE8DE] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 animate-in slide-in-from-bottom-5 duration-200 text-[#2D1C13]">
+        {/* Handle bar on mobile */}
+        <div className="w-12 h-1 bg-[#E5DCD0] rounded-full mx-auto mb-3 sm:hidden" />
 
-        {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#292E36]">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-950/60 border border-indigo-700/50 text-indigo-400 flex items-center justify-center">
-              <Moon className="w-4 h-4" />
+        {/* Header (Matching 4.jpg Screen 8) */}
+        <div className="flex items-center justify-between pb-3 border-b border-[#F5EFEB]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#F5EFEB] text-[#6F452A] flex items-center justify-center">
+              <Calendar className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">Daily Cash Balancing</h3>
-              <p className="text-[11px] text-stone-400">End-of-Day Shift Close</p>
+              <h3 className="font-serif text-base font-bold text-[#2D1C13]">End of Day</h3>
+              <p className="text-[11px] text-[#8C7B70]">Shift &amp; Cash Drawer Reconciliation</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full bg-[#22262B] text-stone-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-full bg-[#F5EFEB] text-[#8C7B70] hover:text-[#2D1C13] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -194,23 +216,23 @@ export function DailyClosingModal({
 
         {loading ? (
           <div className="py-12 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="w-6 h-6 text-[#C8A882] animate-spin" />
-            <p className="text-xs text-stone-400">Loading daily sales summary...</p>
+            <Loader2 className="w-6 h-6 text-[#6F452A] animate-spin" />
+            <p className="text-xs text-[#8C7B70]">Calculating shift sales summary...</p>
           </div>
         ) : !data ? (
-          <div className="py-8 text-center text-xs text-red-400">
+          <div className="py-8 text-center text-xs text-red-600">
             {errorMsg || "Unable to load closing data"}
           </div>
         ) : (
           <div className="py-3 space-y-4">
             {/* Status Alert if Already Closed */}
             {data.isClosed && (
-              <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-xs flex items-center gap-2 text-emerald-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="p-3.5 rounded-2xl bg-[#EAF7ED] border border-[#256A38]/30 text-xs flex items-center gap-2 text-[#256A38]">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <div>
-                  <span className="font-bold">Day Already Closed</span>
-                  <div className="text-[11px] text-emerald-400/80">
-                    Closed at:{" "}
+                  <span className="font-bold">Shift Closed Already</span>
+                  <div className="text-[11px] opacity-80">
+                    Recorded at:{" "}
                     {new Date(data.closingRecord?.closedAt || "").toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit"
@@ -221,190 +243,211 @@ export function DailyClosingModal({
             )}
 
             {successMsg && (
-              <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-xs text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="p-3.5 rounded-2xl bg-[#EAF7ED] border border-[#256A38]/30 text-xs text-[#256A38] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{successMsg}</span>
               </div>
             )}
 
-            {/* Expected Summary Card */}
-            <div className="p-4 rounded-2xl bg-[#1F2328] border border-[#2D333C] space-y-2.5 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-[#2C3138] text-[11px] font-bold text-stone-400 uppercase tracking-wider">
-                <span>System Expected Sales</span>
-                <span>{data.preview.orderCount} Orders</span>
+            {/* Sales Summary Card (Matching 4.jpg Screen 8) */}
+            <div className="p-4 rounded-2xl bg-[#FBF8F2] border border-[#EFE8DE] space-y-2.5 text-xs shadow-cafe-sm">
+              <div className="flex items-center justify-between pb-2 border-b border-[#EFE8DE] font-bold text-[#6F452A]">
+                <span className="font-serif text-sm">Sales Summary</span>
+                <span className="text-[11px] text-[#8C7B70]">{data.preview.orderCount} Orders</span>
               </div>
 
-              <div className="flex justify-between items-center text-sm font-bold">
-                <span className="text-stone-300">Expected Cash in Drawer:</span>
-                <span className="text-emerald-400 font-mono text-base">
-                  ₱{expectedCash.toFixed(0)}
+              <div className="flex justify-between items-center text-xs text-[#8C7B70]">
+                <span>Total Sales:</span>
+                <span className="font-bold text-[#2D1C13]">
+                  ₱{totalSalesNum.toLocaleString("en-US", { minimumFractionDigits: 0 })}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center text-xs text-stone-400">
-                <span>GCash Net Collected:</span>
-                <span className="font-mono text-stone-200">
-                  ₱{parseFloat(data.preview.gcashNet).toFixed(0)}
+              <div className="flex justify-between items-center text-xs text-[#8C7B70]">
+                <span>Cash:</span>
+                <span className="font-bold text-[#2D1C13]">
+                  ₱{expectedCash.toLocaleString("en-US", { minimumFractionDigits: 0 })}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center text-xs text-stone-400 pt-1 border-t border-[#2C3138]">
-                <span>Total Day Revenue:</span>
-                <span className="font-bold text-[#C8A882] font-mono">
-                  ₱{parseFloat(data.preview.totalSales).toFixed(0)}
+              <div className="flex justify-between items-center text-xs text-[#8C7B70]">
+                <span>GCash:</span>
+                <span className="font-bold text-[#007DFE]">
+                  ₱{gcashGrossNum.toLocaleString("en-US", { minimumFractionDigits: 0 })}
                 </span>
+              </div>
+
+              <div className="flex justify-between items-center text-xs text-[#8C7B70]">
+                <span>GCash Fees:</span>
+                <span className="font-bold text-[#D25E1A]">
+                  ₱{gcashFeesNum.toFixed(2)}
+                </span>
+              </div>
+
+              {/* Net Sales Solid Roast Banner (Matching 4.jpg Screen 8) */}
+              <div className="p-3 rounded-xl bg-[#6F452A] text-white flex items-center justify-between font-bold text-sm shadow-xs mt-1">
+                <span className="font-serif">Net Sales</span>
+                <span className="font-serif text-base">₱{netSalesNum.toLocaleString("en-US", { minimumFractionDigits: 0 })}</span>
               </div>
             </div>
 
-            {/* Input Mode Selector */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setInputMode("counter")}
-                className={`py-2 px-3 rounded-xl font-bold transition-all ${
-                  inputMode === "counter"
-                    ? "bg-[#C8A882] text-black shadow-md shadow-[#C8A882]/20"
-                    : "bg-[#20242A] text-stone-300 border border-[#2E343D]"
-                }`}
-              >
-                Denomination Counter
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("direct")}
-                className={`py-2 px-3 rounded-xl font-bold transition-all ${
-                  inputMode === "direct"
-                    ? "bg-[#C8A882] text-black shadow-md shadow-[#C8A882]/20"
-                    : "bg-[#20242A] text-stone-300 border border-[#2E343D]"
-                }`}
-              >
-                Direct Amount
-              </button>
-            </div>
+            {/* Cash Reconciliation Section (Matching 4.jpg Screen 8) */}
+            <div className="p-4 rounded-2xl bg-white border border-[#EFE8DE] space-y-3 shadow-cafe-sm">
+              <h4 className="font-serif text-sm font-bold text-[#2D1C13]">
+                Cash Reconciliation
+              </h4>
 
-            {/* DENOMINATION COUNTER MODE */}
-            {inputMode === "counter" ? (
-              <div className="space-y-2 p-3.5 rounded-2xl bg-[#1C2025] border border-[#2B3139]">
-                <div className="text-[11px] font-bold uppercase text-stone-400 tracking-wider mb-2">
-                  Bill Quantity Count
-                </div>
+              <div className="flex justify-between items-center text-xs text-[#8C7B70]">
+                <span>Expected Cash in Drawer:</span>
+                <span className="font-bold text-[#6F452A] text-sm">
+                  ₱{expectedCash.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                </span>
+              </div>
 
-                {[1000, 500, 200, 100, 50, 20].map((denom) => (
-                  <div
-                    key={denom}
-                    className="flex items-center justify-between py-1 border-b border-[#262B32] last:border-0"
-                  >
-                    <span className="text-xs font-bold text-stone-200 w-16">
-                      ₱{denom}
-                    </span>
+              {/* Mode switch */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-full bg-[#F5EFEB] border border-[#EFE8DE]">
+                <button
+                  type="button"
+                  onClick={() => setInputMode("counter")}
+                  className={`py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
+                    inputMode === "counter"
+                      ? "bg-[#6F452A] text-white shadow-xs"
+                      : "text-[#8C7B70] hover:text-[#2D1C13]"
+                  }`}
+                >
+                  Bill Counter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode("direct")}
+                  className={`py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
+                    inputMode === "direct"
+                      ? "bg-[#6F452A] text-white shadow-xs"
+                      : "text-[#8C7B70] hover:text-[#2D1C13]"
+                  }`}
+                >
+                  Direct Amount
+                </button>
+              </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => updateCount(denom, -1)}
-                        className="w-7 h-7 rounded-lg bg-[#272C33] text-stone-300 hover:text-white flex items-center justify-center active:scale-95"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-
-                      <span className="w-8 text-center text-xs font-bold font-mono text-white">
-                        {counts[denom] || 0}
+              {/* Counter Mode */}
+              {inputMode === "counter" ? (
+                <div className="space-y-1.5 pt-1">
+                  {[1000, 500, 200, 100, 50, 20].map((denom) => (
+                    <div
+                      key={denom}
+                      className="flex items-center justify-between py-1 border-b border-[#F5EFEB] last:border-0"
+                    >
+                      <span className="text-xs font-bold text-[#2D1C13] w-14">
+                        ₱{denom}
                       </span>
 
-                      <button
-                        type="button"
-                        onClick={() => updateCount(denom, 1)}
-                        className="w-7 h-7 rounded-lg bg-[#272C33] text-[#C8A882] hover:text-white flex items-center justify-center active:scale-95"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updateCount(denom, -1)}
+                          className="w-6 h-6 rounded-full bg-[#F5EFEB] text-[#8C7B70] hover:text-[#2D1C13] flex items-center justify-center cursor-pointer"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+
+                        <span className="w-6 text-center text-xs font-bold text-[#2D1C13]">
+                          {counts[denom] || 0}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCount(denom, 1)}
+                          className="w-6 h-6 rounded-full bg-[#F5EFEB] text-[#6F452A] hover:bg-[#6F452A] hover:text-white flex items-center justify-center cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <span className="text-xs text-[#8C7B70] w-16 text-right">
+                        ₱{((counts[denom] || 0) * denom).toFixed(0)}
+                      </span>
                     </div>
+                  ))}
 
-                    <span className="text-xs font-mono text-stone-400 w-16 text-right">
-                      ₱{((counts[denom] || 0) * denom).toFixed(0)}
-                    </span>
+                  <div className="pt-2 flex items-center justify-between text-xs">
+                    <span className="font-bold text-[#8C7B70]">Loose Coins:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[#8C7B70]">₱</span>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={coinsAmount}
+                        onChange={(e) => setCoinsAmount(e.target.value)}
+                        className="w-20 px-2.5 py-1 bg-[#FBF8F2] border border-[#EFE8DE] rounded-xl text-xs text-[#2D1C13] text-right focus:outline-none focus:border-[#6F452A]"
+                      />
+                    </div>
                   </div>
-                ))}
-
-                {/* Loose Coins Field */}
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-stone-200">Loose Coins:</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-stone-500 text-xs">₱</span>
+                </div>
+              ) : (
+                /* Direct Entry Mode */
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-xs font-semibold text-[#8C7B70]">
+                    Actual Cash Counted
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#8C7B70] font-bold text-sm">
+                      ₱
+                    </span>
                     <input
                       type="number"
-                      placeholder="0"
-                      value={coinsAmount}
-                      onChange={(e) => setCoinsAmount(e.target.value)}
-                      className="w-20 px-2 py-1 bg-[#121416] border border-[#2E343D] rounded-lg text-xs font-mono text-white text-right focus:outline-none focus:border-[#C8A882]"
+                      step="1"
+                      min="0"
+                      placeholder="e.g. 7850"
+                      value={directCash}
+                      onChange={(e) => setDirectCash(e.target.value)}
+                      className="w-full pl-8 pr-3.5 py-2.5 rounded-2xl bg-[#FBF8F2] border border-[#EFE8DE] text-[#2D1C13] text-base font-bold focus:outline-none focus:border-[#6F452A]"
                     />
                   </div>
                 </div>
-              </div>
-            ) : (
-              /* DIRECT ENTRY MODE */
-              <div className="p-4 rounded-2xl bg-[#1C2025] border border-[#2B3139] space-y-2">
-                <label className="block text-xs font-bold text-stone-300">
-                  Total Cash Counted in Drawer (₱)
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-stone-500 font-bold text-sm">
-                    ₱
+              )}
+
+              {/* Total Counted & Live Difference Banner (Matching 4.jpg Screen 8) */}
+              <div className="pt-2 border-t border-[#F5EFEB] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-[#8C7B70]">Actual Counted:</span>
+                  <span className="font-bold text-[#2D1C13] text-sm">
+                    ₱{calculatedCashCount.toFixed(0)}
                   </span>
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    placeholder="e.g. 3500"
-                    value={directCash}
-                    onChange={(e) => setDirectCash(e.target.value)}
-                    className="w-full pl-8 pr-3.5 py-3 rounded-xl bg-[#121416] border border-[#2F353E] text-white text-lg font-black focus:outline-none focus:border-[#C8A882]"
-                  />
                 </div>
-              </div>
-            )}
 
-            {/* TOTAL ACTUAL COUNTED & RECONCILIATION VARIANCE */}
-            <div className="p-4 rounded-2xl bg-[#1F2328] border border-[#2F353E] space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-stone-300 font-semibold">Total Counted:</span>
-                <span className="text-xl font-black text-white font-mono">
-                  ₱{calculatedCashCount.toFixed(0)}
-                </span>
-              </div>
-
-              {/* Difference Status Badge */}
-              <div
-                className={`p-3 rounded-xl border flex items-center justify-between text-xs ${
-                  isExact
-                    ? "bg-emerald-950/40 border-emerald-700/60 text-emerald-300"
-                    : isShortage
-                    ? "bg-red-950/40 border-red-700/60 text-red-300"
-                    : "bg-amber-950/40 border-amber-700/60 text-amber-300"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {isExact ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  ) : (
-                    <AlertTriangle className="w-4 h-4" />
-                  )}
-                  <span className="font-bold">
-                    {isExact
-                      ? "Exact Match!"
+                <div
+                  className={`p-3 rounded-2xl border flex items-center justify-between text-xs font-semibold ${
+                    isExact
+                      ? "bg-[#EAF7ED] border-[#256A38]/30 text-[#256A38]"
                       : isShortage
-                      ? "Cash Shortage (Lacking)"
-                      : "Cash Over (Excess)"}
+                      ? "bg-[#FDECEC] border-[#C5221F]/30 text-[#C5221F]"
+                      : "bg-[#FFF1E5] border-[#D25E1A]/30 text-[#D25E1A]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {isExact ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4" />
+                    )}
+                    <span>
+                      {isExact
+                        ? "Exact Match!"
+                        : isShortage
+                        ? "Difference (Shortage)"
+                        : "Difference (Over)"}
+                    </span>
+                  </div>
+
+                  <span className="font-bold text-sm">
+                    {isExact
+                      ? "₱0"
+                      : isShortage
+                      ? `-₱${Math.abs(cashDifference).toFixed(0)}`
+                      : `+₱${cashDifference.toFixed(0)}`}
                   </span>
                 </div>
-
-                <span className="font-mono font-extrabold text-sm">
-                  {isExact
-                    ? "₱0"
-                    : isShortage
-                    ? `-₱${Math.abs(cashDifference).toFixed(0)}`
-                    : `+₱${cashDifference.toFixed(0)}`}
-                </span>
               </div>
             </div>
 
@@ -412,33 +455,29 @@ export function DailyClosingModal({
             <div>
               <input
                 type="text"
-                placeholder="Closing notes (e.g. ₱50 tip in drawer, short change)..."
+                placeholder="Optional closing notes..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#121416] border border-[#2C3138] text-white text-xs placeholder-stone-500 focus:outline-none focus:border-[#C8A882]"
+                className="w-full px-3.5 py-2.5 rounded-2xl bg-[#FBF8F2] border border-[#EFE8DE] text-[#2D1C13] text-xs placeholder-[#8C7B70] focus:outline-none focus:border-[#6F452A]"
               />
             </div>
 
-            {/* Submit / Finalize Button */}
+            {/* Save Report Button (Matching 4.jpg Screen 8) */}
             <button
               type="button"
               disabled={submitting}
               onClick={handleSubmitClosing}
-              className="w-full py-4 px-4 rounded-xl font-black text-sm bg-gradient-to-r from-[#C8A882] to-[#B6956F] text-[#121416] hover:from-[#DFCAAF] hover:to-[#C8A882] active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-xl shadow-[#C8A882]/15 cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-4 rounded-full font-bold text-sm bg-[#6F452A] text-white hover:bg-[#5A361F] active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
             >
               {submitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Recording Closing...</span>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving Report...</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-4 h-4" />
-                  <span>
-                    {data.isClosed
-                      ? "Update Daily Closing Record"
-                      : "Finalize & Record Day's Close"}
-                  </span>
+                  <Save className="w-4 h-4" />
+                  <span>Save Report</span>
                 </>
               )}
             </button>

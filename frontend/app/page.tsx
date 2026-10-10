@@ -15,6 +15,7 @@ import { BottomNavBar, ActiveTab } from "@/components/BottomNavBar";
 import { DashboardView } from "@/components/DashboardView";
 import { OrderHistoryView } from "@/components/OrderHistoryView";
 import { DailyClosingModal } from "@/components/DailyClosingModal";
+import { API_BASE } from "@/lib/api";
 import {
   Coffee,
   Search,
@@ -22,7 +23,8 @@ import {
   LogOut,
   RefreshCw,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Bell
 } from "lucide-react";
 
 export default function AppMainPage() {
@@ -30,8 +32,8 @@ export default function AppMainPage() {
   const { user, token, loading: authLoading, logout } = useAuth();
   const { items, subtotal, addItem, clearCart, setIsCartOpen } = useCart();
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState<ActiveTab>("pos");
+  // Navigation tab state (defaults to home dashboard as in 3.jpg)
+  const [activeTab, setActiveTab] = useState<ActiveTab>("home");
 
   // Menu states
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,7 +50,6 @@ export default function AppMainPage() {
   const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
   const [isClosingOpen, setIsClosingOpen] = useState(false);
 
-
   // Redirect if unauthenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -59,41 +60,37 @@ export default function AppMainPage() {
   // Fetch Menu from Express Backend
   const loadMenu = async () => {
     if (!token) return;
-    setLoadingMenu(true);
-    setFetchError(null);
-
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
     try {
-      const [catsRes, prodsRes] = await Promise.all([
-        fetch(`${apiUrl}/categories`, {
+      setLoadingMenu(true);
+      setFetchError(null);
+
+      const [catRes, prodRes] = await Promise.all([
+        fetch(`${API_BASE}/categories`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${apiUrl}/products`, {
+        fetch(`${API_BASE}/products`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
 
-      const [catsData, prodsData] = await Promise.all([
-        catsRes.json(),
-        prodsRes.json()
-      ]);
-
-      if (catsRes.ok && catsData.success) {
-        setCategories(catsData.data);
-      } else {
-        throw new Error(catsData.message || "Failed to load categories");
+      if (!catRes.ok || !prodRes.ok) {
+        throw new Error("Failed to load catalog data from server");
       }
 
-      if (prodsRes.ok && prodsData.success) {
-        setProducts(prodsData.data);
+      const catJson = await catRes.json();
+      const prodJson = await prodRes.json();
+
+      if (catJson.success && prodJson.success) {
+        setCategories(catJson.data);
+        setProducts(prodJson.data);
       } else {
-        throw new Error(prodsData.message || "Failed to load products");
+        throw new Error(prodJson.message || "Failed to parse menu items");
       }
     } catch (err: unknown) {
-      console.error("Error loading menu:", err);
+      console.error("Menu fetch error:", err);
       setFetchError(
-        err instanceof Error ? err.message : "Could not reach the Express backend."
+        err instanceof Error ? err.message : "Error connecting to backend service"
       );
     } finally {
       setLoadingMenu(false);
@@ -106,86 +103,99 @@ export default function AppMainPage() {
     }
   }, [token]);
 
-  // Handle opening an order receipt by ID (e.g. from Dashboard recent list)
-  const handleOpenReceiptFromId = async (orderId: string) => {
-    if (!token) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-    try {
-      const res = await fetch(`${apiUrl}/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setCompletedOrder(json.data);
-      }
-    } catch (err) {
-      console.error("Failed to load receipt:", err);
-    }
-  };
+  // Category item counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    products.forEach((p) => {
+      counts[p.categoryId] = (counts[p.categoryId] || 0) + 1;
+    });
+    return counts;
+  }, [products]);
 
   // Filter products by selected category and search term
   const filteredProducts = useMemo(() => {
-    return products.filter((prod) => {
+    return products.filter((product) => {
       const matchesCategory =
-        selectedCategoryId === null || prod.categoryId === selectedCategoryId;
+        !selectedCategoryId || product.categoryId === selectedCategoryId;
       const matchesSearch =
         searchQuery.trim() === "" ||
-        prod.name.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
-        prod.category?.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description &&
+          product.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
       return matchesCategory && matchesSearch;
     });
   }, [products, selectedCategoryId, searchQuery]);
 
-  // Calculate product counts per category
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const prod of products) {
-      counts[prod.categoryId] = (counts[prod.categoryId] || 0) + 1;
+  // Open order receipt modal by ID
+  const handleOpenReceiptFromId = async (orderId: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setCompletedOrder(json.data);
+        }
+      }
+    } catch (err) {
+      console.error("Error opening order receipt:", err);
     }
-    return counts;
-  }, [products]);
+  };
 
-  // Handle adding variant to cart
+  // Direct addition of single-variant products
   const handleSelectVariant = (product: Product, variant: ProductVariant) => {
     addItem(product, variant);
   };
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#121416]">
+      <div className="min-h-screen flex items-center justify-center bg-[#FBF8F2]">
         <div className="flex flex-col items-center gap-3">
-          <div className="p-4 rounded-full bg-[#1F2327] border border-[#2D3238] shadow-lg animate-pulse">
-            <Coffee className="w-8 h-8 text-[#C8A882]" />
-          </div>
-          <p className="text-sm text-stone-400 font-medium">Authenticating...</p>
+          <div className="w-12 h-12 rounded-full border-3 border-[#6F452A]/20 border-t-[#6F452A] animate-spin" />
+          <p className="text-sm font-medium text-[#8C7B70]">Authenticating...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#121416] text-[#F3F4F6] flex flex-col">
+    <div className="min-h-screen bg-[#FBF8F2] text-[#2D1C13] flex flex-col">
       {/* Top App Header */}
-      <header className="sticky top-0 z-30 bg-[#16181A]/95 backdrop-blur-md border-b border-[#262A30] px-4 py-2.5 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-[#FBF8F2]/95 backdrop-blur-md border-b border-[#EFE8DE] px-4 py-3 flex items-center justify-between max-w-md w-full mx-auto shadow-cafe-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#292E34] to-[#1C1F22] border border-[#3E454F] flex items-center justify-center shadow-md">
-            <Coffee className="w-5 h-5 text-[#C8A882]" />
+          {/* Logo Mark */}
+          <div className="w-8 h-8 rounded-full bg-[#F5EFEB] border border-[#EFE8DE] flex items-center justify-center text-[#6F452A]">
+            <Coffee className="w-4 h-4 stroke-[2.2]" />
           </div>
           <div>
-            <h1 className="text-sm font-extrabold text-white leading-tight">
-              BLAISE CAFÉ
-            </h1>
-            <p className="text-[10px] uppercase font-bold text-[#C8A882] tracking-wider">
-              {activeTab === "pos" ? "POS Register" : activeTab === "dashboard" ? "Sales Analytics" : "Order Ledger"}
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif font-bold text-base tracking-tight text-[#2D1C13]">
+                Blaise
+              </span>
+              <span className="text-[10px] font-bold tracking-[0.2em] text-[#8C5837] uppercase">
+                CAFÉ
+              </span>
+            </div>
+            <p className="text-[10px] font-medium text-[#8C7B70] tracking-wide">
+              {activeTab === "home"
+                ? "Owner Dashboard"
+                : activeTab === "pos"
+                ? "New Order POS"
+                : activeTab === "orders"
+                ? "Orders Queue"
+                : "Sales Reports"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {activeTab === "pos" && (
             <button
               onClick={loadMenu}
-              className="p-2 rounded-xl bg-[#20242A] border border-[#2F353E] text-stone-300 hover:text-white transition-colors"
+              className="p-2 rounded-full bg-white border border-[#EFE8DE] text-[#6F452A] hover:bg-[#F5EFEB] transition-colors shadow-xs cursor-pointer"
               title="Refresh Menu"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingMenu ? "animate-spin" : ""}`} />
@@ -193,15 +203,32 @@ export default function AppMainPage() {
           )}
 
           <button
+            onClick={() => setActiveTab("reports")}
+            className="p-2 rounded-full bg-white border border-[#EFE8DE] text-[#8C7B70] hover:text-[#6F452A] transition-colors shadow-xs cursor-pointer"
+            title="Notifications & Reports"
+          >
+            <Bell className="w-3.5 h-3.5" />
+          </button>
+
+          <button
             onClick={logout}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#20242A] border border-[#2F353E] text-xs font-semibold text-stone-300 hover:text-red-400 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-[#EFE8DE] text-xs font-semibold text-[#8C7B70] hover:text-red-700 transition-colors shadow-xs cursor-pointer"
             title="Sign Out"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-3 h-3" />
             <span className="text-[11px]">Logout</span>
           </button>
         </div>
       </header>
+
+      {/* VIEW: HOME DASHBOARD */}
+      {activeTab === "home" && (
+        <DashboardView
+          onSelectOrder={handleOpenReceiptFromId}
+          onOpenClosing={() => setIsClosingOpen(true)}
+          onNavigateToPOS={() => setActiveTab("pos")}
+        />
+      )}
 
       {/* VIEW: POS REGISTER */}
       {activeTab === "pos" && (
@@ -209,18 +236,18 @@ export default function AppMainPage() {
           {/* Search Bar */}
           <div className="px-4 pt-3.5 pb-2">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7B70]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search drinks or snacks..."
-                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#191C20] border border-[#2C3138] text-white text-xs placeholder-stone-500 focus:outline-none focus:border-[#C8A882] focus:ring-1 focus:ring-[#C8A882]/40 transition-all"
+                placeholder="Search order # or item..."
+                className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white border border-[#EFE8DE] text-[#2D1C13] text-xs placeholder-[#8C7B70] focus:outline-none focus:border-[#6F452A] focus:ring-1 focus:ring-[#6F452A]/40 transition-all shadow-cafe-sm"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C7B70] hover:text-[#2D1C13] p-1"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -229,7 +256,7 @@ export default function AppMainPage() {
           </div>
 
           {/* Category Pills (Sticky) */}
-          <div className="sticky top-[53px] z-20 bg-[#121416]/95 backdrop-blur-md pt-1 pb-2 border-b border-[#22262B]">
+          <div className="sticky top-[57px] z-20 bg-[#FBF8F2]/95 backdrop-blur-md pt-1 pb-2 border-b border-[#EFE8DE]">
             <CategoryPills
               categories={categories}
               selectedCategoryId={selectedCategoryId}
@@ -242,13 +269,13 @@ export default function AppMainPage() {
           {/* Product Grid Area */}
           <div className="flex-1 px-4 pt-4">
             {fetchError ? (
-              <div className="p-4 rounded-2xl bg-red-950/30 border border-red-800/50 text-center space-y-2 my-6">
-                <AlertCircle className="w-6 h-6 text-red-400 mx-auto" />
-                <h3 className="text-xs font-bold text-red-200">Unable to load menu</h3>
-                <p className="text-[11px] text-stone-400">{fetchError}</p>
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-center space-y-2 my-6">
+                <AlertCircle className="w-6 h-6 text-red-500 mx-auto" />
+                <h3 className="text-xs font-bold text-red-800">Unable to load menu</h3>
+                <p className="text-[11px] text-red-600">{fetchError}</p>
                 <button
                   onClick={loadMenu}
-                  className="mt-2 px-3 py-1.5 text-xs font-bold bg-red-900/60 hover:bg-red-800 text-white rounded-lg transition-colors"
+                  className="mt-2 px-3 py-1.5 text-xs font-bold bg-red-700 hover:bg-red-800 text-white rounded-lg transition-colors cursor-pointer"
                 >
                   Retry
                 </button>
@@ -258,24 +285,24 @@ export default function AppMainPage() {
                 {[...Array(6)].map((_, idx) => (
                   <div
                     key={idx}
-                    className="h-32 rounded-2xl bg-[#191C20] border border-[#2A2E35] animate-pulse p-3.5 flex flex-col justify-between"
+                    className="h-36 rounded-2xl bg-white border border-[#EFE8DE] animate-pulse p-3.5 flex flex-col justify-between shadow-cafe-sm"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-stone-800/60" />
+                    <div className="w-10 h-10 rounded-xl bg-[#F5EFEB]" />
                     <div className="space-y-1.5">
-                      <div className="h-3 bg-stone-800/80 rounded w-4/5" />
-                      <div className="h-2.5 bg-stone-800/50 rounded w-1/2" />
+                      <div className="h-3 bg-[#F5EFEB] rounded w-4/5" />
+                      <div className="h-2.5 bg-[#F5EFEB] rounded w-1/2" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="text-center py-12 space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-[#1C1F23] border border-[#2A2E35] flex items-center justify-center mx-auto text-stone-500">
-                  <Sparkles className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-2xl bg-white border border-[#EFE8DE] flex items-center justify-center mx-auto text-[#8C7B70] shadow-cafe-sm">
+                  <Sparkles className="w-6 h-6 text-[#C69068]" />
                 </div>
-                <p className="text-xs font-bold text-stone-300">No items found</p>
-                <p className="text-[11px] text-stone-500">
-                  Try searching with another keyword or select All Items.
+                <p className="text-xs font-bold text-[#2D1C13]">No items found</p>
+                <p className="text-[11px] text-[#8C7B70]">
+                  Try searching with another keyword or select All.
                 </p>
               </div>
             ) : (
@@ -294,17 +321,18 @@ export default function AppMainPage() {
         </main>
       )}
 
-      {/* VIEW: DASHBOARD */}
-      {activeTab === "dashboard" && (
+      {/* VIEW: ORDER HISTORY / ORDERS QUEUE */}
+      {activeTab === "orders" && (
+        <OrderHistoryView onSelectOrder={(order) => setCompletedOrder(order)} />
+      )}
+
+      {/* VIEW: SALES REPORTS */}
+      {activeTab === "reports" && (
         <DashboardView
           onSelectOrder={handleOpenReceiptFromId}
           onOpenClosing={() => setIsClosingOpen(true)}
+          onNavigateToPOS={() => setActiveTab("pos")}
         />
-      )}
-
-      {/* VIEW: ORDER HISTORY */}
-      {activeTab === "orders" && (
-        <OrderHistoryView onSelectOrder={(order) => setCompletedOrder(order)} />
       )}
 
       {/* Drink Size Selector Sheet */}
@@ -354,4 +382,3 @@ export default function AppMainPage() {
     </div>
   );
 }
-

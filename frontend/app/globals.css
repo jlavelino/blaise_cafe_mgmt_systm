@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FBF8F2;
+  --foreground: #2D1C13;
+  --cafe-bg: #FBF8F2;
+  --cafe-surface: #FFFFFF;
+  --cafe-card: #FFFFFF;
+  --cafe-border: #EFE8DE;
+  --cafe-border-subtle: #F5EFEB;
+  --cafe-roast: #6F452A;
+  --cafe-roast-hover: #5A361F;
+  --cafe-espresso: #2D1C13;
+  --cafe-caramel: #C69068;
+  --cafe-cinnamon: #D99B6A;
+  --cafe-cream: #F5EFEB;
+  --cafe-muted: #8C7B70;
+  --cafe-muted-light: #A89B92;
+
+  /* Status pill colors */
+  --cafe-badge-green-bg: #EAF7ED;
+  --cafe-badge-green-text: #256A38;
+  --cafe-badge-peach-bg: #FFF1E5;
+  --cafe-badge-peach-text: #D25E1A;
+  --cafe-badge-rose-bg: #FDECEC;
+  --cafe-badge-rose-text: #C5221F;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-cafe-bg: var(--cafe-bg);
+  --color-cafe-surface: var(--cafe-surface);
+  --color-cafe-card: var(--cafe-card);
+  --color-cafe-border: var(--cafe-border);
+  --color-cafe-border-subtle: var(--cafe-border-subtle);
+  --color-cafe-roast: var(--cafe-roast);
+  --color-cafe-roast-hover: var(--cafe-roast-hover);
+  --color-cafe-espresso: var(--cafe-espresso);
+  --color-cafe-caramel: var(--cafe-caramel);
+  --color-cafe-cinnamon: var(--cafe-cinnamon);
+  --color-cafe-cream: var(--cafe-cream);
+  --color-cafe-muted: var(--cafe-muted);
+  --color-cafe-muted-light: var(--cafe-muted-light);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-playfair), Georgia, serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--cafe-bg);
+  color: var(--cafe-espresso);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom warm cafe typography & utility classes */
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.shadow-cafe-sm {
+  box-shadow: 0 1px 3px rgba(111, 69, 42, 0.04), 0 1px 2px rgba(111, 69, 42, 0.02);
+}
+
+.shadow-cafe {
+  box-shadow: 0 4px 16px -2px rgba(111, 69, 42, 0.06), 0 2px 6px -1px rgba(111, 69, 42, 0.03);
+}
+
+.shadow-cafe-lg {
+  box-shadow: 0 10px 25px -4px rgba(111, 69, 42, 0.08), 0 4px 10px -2px rgba(111, 69, 42, 0.04);
+}
+
+/* Smooth customized scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #E5DCD0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C69068;
 }

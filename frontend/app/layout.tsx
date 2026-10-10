@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Blaise Café — Management System",
-  description: "Mobile-first POS and Management Portal for Blaise Café Owner",
+  title: "Blaise Café — Management Portal",
+  description: "Artisanal Coffee Shop Management & POS System for Blaise Café Owner",
 };
 
 export default function RootLayout({
@@ -27,9 +29,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full dark`}
+      className={`${plusJakartaSans.variable} ${playfairDisplay.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-[#121416] text-[#F3F4F6] antialiased selection:bg-[#C8A882] selection:text-black">
+      <body className="min-h-full flex flex-col bg-[#FBF8F2] text-[#2D1C13] antialiased selection:bg-[#E8C7A5] selection:text-[#2D1C13]">
         <AuthProvider>
           <CartProvider>{children}</CartProvider>
         </AuthProvider>
