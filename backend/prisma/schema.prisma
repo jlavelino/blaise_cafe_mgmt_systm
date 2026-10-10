@@ -14,6 +14,8 @@ enum PaymentMethod {
 }
 
 enum OrderStatus {
+  PREPARING
+  SERVED
   COMPLETED
   CANCELLED
 }
@@ -64,7 +66,7 @@ model Order {
   id          String      @id @default(uuid())
   orderNumber String      @unique @map("order_number")
   total       Decimal     @db.Decimal(10, 2)
-  status      OrderStatus @default(COMPLETED)
+  status      OrderStatus @default(PREPARING)
   notes       String?
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
@@ -104,3 +106,21 @@ model Payment {
 
   @@map("payments")
 }
+
+model DailyClosing {
+  id             String    @id @default(uuid())
+  date           DateTime  @unique @db.Date
+  totalSales     Decimal   @db.Decimal(10, 2) @map("total_sales")
+  orderCount     Int       @map("order_count")
+  cashSales      Decimal   @db.Decimal(10, 2) @map("cash_sales")
+  actualCash     Decimal   @db.Decimal(10, 2) @map("actual_cash")
+  cashDifference Decimal   @db.Decimal(10, 2) @map("cash_difference")
+  gcashGross     Decimal   @db.Decimal(10, 2) @map("gcash_gross")
+  gcashFees      Decimal   @db.Decimal(10, 2) @map("gcash_fees")
+  gcashNet       Decimal   @db.Decimal(10, 2) @map("gcash_net")
+  notes          String?
+  closedAt       DateTime  @default(now()) @map("closed_at")
+
+  @@map("daily_closings")
+}
+

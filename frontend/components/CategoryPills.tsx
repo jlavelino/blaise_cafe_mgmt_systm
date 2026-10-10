@@ -34,19 +34,19 @@ export function CategoryPills({
         {/* All Products Pill */}
         <button
           onClick={() => onSelectCategory(null)}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
             selectedCategoryId === null
-              ? "bg-[#C8A882] text-[#121416] shadow-md shadow-[#C8A882]/20 scale-[1.02]"
-              : "bg-[#1C2024] text-stone-300 border border-[#2B3037] hover:border-stone-500 hover:text-white"
+              ? "bg-[#6F452A] text-white shadow-sm scale-[1.02]"
+              : "bg-white text-[#8C7B70] border border-[#EFE8DE] hover:border-[#6F452A]/40 hover:text-[#2D1C13]"
           }`}
         >
           <LayoutGrid className="w-3.5 h-3.5" />
-          <span>All Items</span>
+          <span>All</span>
           <span
             className={`text-[10px] px-1.5 py-0.2 rounded-full ${
               selectedCategoryId === null
-                ? "bg-black/20 text-black font-bold"
-                : "bg-stone-800 text-stone-400"
+                ? "bg-white/20 text-white font-bold"
+                : "bg-[#F5EFEB] text-[#8C7B70]"
             }`}
           >
             {totalCount}
@@ -62,10 +62,10 @@ export function CategoryPills({
             <button
               key={cat.id}
               onClick={() => onSelectCategory(cat.id)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 isSelected
-                  ? "bg-[#C8A882] text-[#121416] shadow-md shadow-[#C8A882]/20 scale-[1.02]"
-                  : "bg-[#1C2024] text-stone-300 border border-[#2B3037] hover:border-stone-500 hover:text-white"
+                  ? "bg-[#6F452A] text-white shadow-sm scale-[1.02]"
+                  : "bg-white text-[#8C7B70] border border-[#EFE8DE] hover:border-[#6F452A]/40 hover:text-[#2D1C13]"
               }`}
             >
               {getCategoryIcon(cat.name)}
@@ -73,8 +73,8 @@ export function CategoryPills({
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                   isSelected
-                    ? "bg-black/20 text-black font-bold"
-                    : "bg-stone-800 text-stone-400"
+                    ? "bg-white/20 text-white font-bold"
+                    : "bg-[#F5EFEB] text-[#8C7B70]"
                 }`}
               >
                 {count}
