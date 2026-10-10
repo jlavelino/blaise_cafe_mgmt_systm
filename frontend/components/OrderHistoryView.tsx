@@ -14,7 +14,8 @@ import {
   QrCode,
   Calendar,
   Coffee,
-  SlidersHorizontal
+  SlidersHorizontal,
+  CheckCircle2
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
@@ -59,6 +60,8 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PREPARING" | "SERVED">("ALL");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Today string
@@ -113,16 +116,85 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
     fetchOrders(effectiveDate);
   }, [effectiveDate, fetchOrders]);
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase().trim();
-      return (
-        o.orderNumber.toLowerCase().includes(q) ||
-        o.items.some((i) => i.itemNameSnapshot.toLowerCase().includes(q))
-      );
+  // Update order status with optimistic update
+  const handleUpdateStatus = async (orderId: string, newStatus: "PREPARING" | "SERVED") => {
+    if (!token) return;
+    setUpdatingId(orderId);
+
+    // Optimistically update local state immediately
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Failed to update order status");
+      }
+    } catch (err) {
+      console.error("Status update error:", err);
+      // Revert if error
+      fetchOrders(effectiveDate);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // Counts for today's active orders
+  const todayCounts = useMemo(() => {
+    let preparing = 0;
+    let served = 0;
+    orders.forEach((o) => {
+      if (o.status === "PREPARING") {
+        preparing++;
+      } else if (o.status !== "CANCELLED") {
+        served++;
+      }
     });
-  }, [orders, searchQuery]);
+    return { all: orders.length, preparing, served };
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    let list = orders;
+
+    // Apply status sub-filter in active tab
+    if (activeTab === "active" && statusFilter !== "ALL") {
+      if (statusFilter === "PREPARING") {
+        list = list.filter((o) => o.status === "PREPARING");
+      } else if (statusFilter === "SERVED") {
+        list = list.filter((o) => o.status === "SERVED" || o.status === "COMPLETED");
+      }
+    }
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (o) =>
+          o.orderNumber.toLowerCase().includes(q) ||
+          o.items.some((i) => i.itemNameSnapshot.toLowerCase().includes(q))
+      );
+    }
+
+    // In active tab when ALL is selected, prioritize PREPARING at the top
+    if (activeTab === "active" && statusFilter === "ALL") {
+      list = [...list].sort((a, b) => {
+        if (a.status === "PREPARING" && b.status !== "PREPARING") return -1;
+        if (a.status !== "PREPARING" && b.status === "PREPARING") return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    }
+
+    return list;
+  }, [orders, activeTab, statusFilter, searchQuery]);
 
   // Aggregate stats for current view
   const totalRevenue = useMemo(() => {
@@ -168,6 +240,44 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
           Past History
         </button>
       </div>
+
+      {/* Status Sub-Filters (Only in Active Tab) */}
+      {activeTab === "active" && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          <button
+            onClick={() => setStatusFilter("ALL")}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === "ALL"
+                ? "bg-[#6F452A] text-white shadow-xs"
+                : "bg-white text-[#8C7B70] border border-[#EFE8DE] hover:bg-[#F5EFEB]"
+            }`}
+          >
+            All ({todayCounts.all})
+          </button>
+          <button
+            onClick={() => setStatusFilter("PREPARING")}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              statusFilter === "PREPARING"
+                ? "bg-[#D25E1A] text-white shadow-xs"
+                : "bg-white text-[#D25E1A] border border-[#FAD7C0] hover:bg-[#FFF1E5]"
+            }`}
+          >
+            <Coffee className="w-3 h-3" />
+            <span>Preparing ({todayCounts.preparing})</span>
+          </button>
+          <button
+            onClick={() => setStatusFilter("SERVED")}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              statusFilter === "SERVED"
+                ? "bg-[#256A38] text-white shadow-xs"
+                : "bg-white text-[#256A38] border border-[#C6EBD0] hover:bg-[#EAF7ED]"
+            }`}
+          >
+            <CheckCircle2 className="w-3 h-3" />
+            <span>Served ({todayCounts.served})</span>
+          </button>
+        </div>
+      )}
 
       {/* Date Navigator Header (Only in History Mode) */}
       {activeTab === "history" && (
@@ -289,26 +399,26 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
       ) : (
         /* Order Cards List */
         <div className="space-y-3">
-          {filteredOrders.map((order, idx) => {
+          {filteredOrders.map((order) => {
             const dateObj = new Date(order.createdAt);
             const timeStr = dateObj.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit"
             });
             const isCash = order.payment.method === "CASH";
-
-            // Status label
-            const statusLabel = idx === 0 && activeTab === "active" ? "PREPARING" : "SERVED";
-            const statusBg =
-              statusLabel === "PREPARING"
-                ? "bg-[#FFF1E5] text-[#D25E1A]"
-                : "bg-[#EAF7ED] text-[#256A38]";
+            const isPreparing = order.status === "PREPARING";
+            const isCancelled = order.status === "CANCELLED";
+            const isUpdating = updatingId === order.id;
 
             return (
               <div
                 key={order.id}
                 onClick={() => onSelectOrder(order)}
-                className="p-4 rounded-2xl bg-white border border-[#EFE8DE] hover:border-[#6F452A]/40 transition-all cursor-pointer shadow-cafe-sm hover:shadow-cafe space-y-2.5 active:scale-[0.99]"
+                className={`p-4 rounded-2xl bg-white border transition-all cursor-pointer shadow-cafe-sm hover:shadow-cafe space-y-2.5 active:scale-[0.99] ${
+                  isPreparing
+                    ? "border-[#D25E1A]/50 bg-gradient-to-b from-[#FFFBF8] to-white ring-1 ring-[#D25E1A]/20"
+                    : "border-[#EFE8DE] hover:border-[#6F452A]/40"
+                }`}
               >
                 {/* Header row: Order #, Time, Status Pill */}
                 <div className="flex items-center justify-between">
@@ -319,9 +429,21 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                     <span className="text-[11px] text-[#8C7B70]">{timeStr}</span>
                   </div>
 
-                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${statusBg}`}>
-                    {statusLabel}
-                  </span>
+                  {isPreparing ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF1E5] text-[#D25E1A] border border-[#FAD7C0]">
+                      <Coffee className="w-3 h-3 animate-pulse" />
+                      <span>PREPARING</span>
+                    </span>
+                  ) : isCancelled ? (
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                      CANCELLED
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EAF7ED] text-[#256A38] border border-[#C6EBD0]">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>SERVED</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* Items bullet preview */}
@@ -363,6 +485,45 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                     <ChevronRight className="w-3.5 h-3.5 text-[#8C7B70]" />
                   </div>
                 </div>
+
+                {/* 1-Tap Action Button for Barista */}
+                {isPreparing && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateStatus(order.id, "SERVED");
+                      }}
+                      disabled={isUpdating}
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#6F452A] hover:bg-[#5A361F] text-white text-xs font-bold transition-all shadow-cafe-sm flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                    >
+                      {isUpdating ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>Mark as Served ✓</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Subtle Revert Button for Active Served Orders */}
+                {!isPreparing && !isCancelled && activeTab === "active" && (
+                  <div className="flex items-center justify-end pt-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateStatus(order.id, "PREPARING");
+                      }}
+                      disabled={isUpdating}
+                      className="text-[10px] text-[#8C7B70] hover:text-[#D25E1A] transition-colors cursor-pointer"
+                    >
+                      ↩ Revert to Preparing
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}

@@ -64,6 +64,24 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
           <p className="text-[11px] text-[#8C7B70]">
             Order #{order.orderNumber.replace("ORD-", "")} • {formattedDate}
           </p>
+
+          <div className="flex items-center justify-center gap-2 mt-2">
+            {order.status === "PREPARING" ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FFF1E5] text-[#D25E1A] border border-[#FAD7C0]">
+                <Coffee className="w-3.5 h-3.5 animate-pulse" />
+                <span>Preparing Order</span>
+              </span>
+            ) : order.status === "CANCELLED" ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                <span>Cancelled</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EAF7ED] text-[#256A38] border border-[#C6EBD0]">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Order Served</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Paper Receipt Breakdown */}

@@ -136,7 +136,7 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
         data: {
           orderNumber,
           total: new Prisma.Decimal(calculatedTotal.toFixed(2)),
-          status: "COMPLETED",
+          status: "PREPARING",
           notes: notes || null,
           items: {
             create: preparedOrderItems
@@ -250,6 +250,58 @@ export async function getOrderById(req: Request, res: Response): Promise<void> {
     res.status(500).json({
       success: false,
       message: "Failed to retrieve order"
+    });
+  }
+}
+
+/**
+ * PATCH /api/orders/:id/status
+ * Updates an order's status (PREPARING, SERVED, CANCELLED)
+ */
+export async function updateOrderStatus(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const allowed = ["PREPARING", "SERVED", "CANCELLED", "COMPLETED"];
+    if (!status || !allowed.includes(status)) {
+      res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${allowed.join(", ")}`
+      });
+      return;
+    }
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { id }
+    });
+
+    if (!existingOrder) {
+      res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+      return;
+    }
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: { status: status as any },
+      include: {
+        items: true,
+        payment: true
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: updated
+    });
+  } catch (err) {
+    console.error("Error updating order status:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update order status"
     });
   }
 }

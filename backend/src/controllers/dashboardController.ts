@@ -11,10 +11,10 @@ export async function getTodayDashboard(_req: Request, res: Response): Promise<v
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-    // Fetch all completed orders today with items and payment
+    // Fetch all active/completed orders today with items and payment
     const todayOrders = await prisma.order.findMany({
       where: {
-        status: "COMPLETED",
+        status: { in: ["PREPARING", "SERVED", "COMPLETED"] as any },
         createdAt: {
           gte: startOfDay,
           lte: endOfDay
@@ -84,6 +84,27 @@ export async function getTodayDashboard(_req: Request, res: Response): Promise<v
       }
     }
 
+    let preparingCount = 0;
+    let servedCount = 0;
+
+    for (const order of todayOrders) {
+      if (order.status === "PREPARING") {
+        preparingCount++;
+      } else {
+        servedCount++;
+      }
+    }
+
+    const cancelledCount = await prisma.order.count({
+      where: {
+        status: "CANCELLED",
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
+
     const orderCount = todayOrders.length;
     const averageOrderValue = orderCount > 0 ? totalSales / orderCount : 0;
 
@@ -106,7 +127,10 @@ export async function getTodayDashboard(_req: Request, res: Response): Promise<v
           cashSales: cashSales.toFixed(2),
           gcashGross: gcashGross.toFixed(2),
           gcashFees: gcashFees.toFixed(2),
-          gcashNet: gcashNet.toFixed(2)
+          gcashNet: gcashNet.toFixed(2),
+          preparingCount,
+          servedCount,
+          cancelledCount
         },
         topProducts,
         hourlyTrends,

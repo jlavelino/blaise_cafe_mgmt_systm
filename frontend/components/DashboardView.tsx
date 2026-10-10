@@ -37,6 +37,9 @@ interface DashboardMetrics {
   gcashGross: string;
   gcashFees: string;
   gcashNet: string;
+  preparingCount?: number;
+  servedCount?: number;
+  cancelledCount?: number;
 }
 
 interface TopProduct {
@@ -178,12 +181,14 @@ export function DashboardView({
   const hourlyTrends = data?.hourlyTrends || [];
   const recentOrders = data?.recentOrders || [];
 
+  const preparingCount = metrics.preparingCount ?? 0;
+  const servedCount = metrics.servedCount ?? (metrics.orderCount - preparingCount);
+  const cancelledCount = metrics.cancelledCount ?? 0;
+
   // Order status distribution data for donut
   const statusData = [
-    { name: "Served", value: metrics.orderCount > 0 ? metrics.orderCount : 1, color: "#6F452A" },
-    { name: "Ready", value: 0, color: "#256A38" },
-    { name: "Preparing", value: 0, color: "#D25E1A" },
-    { name: "Pending", value: 0, color: "#E5A93C" },
+    { name: "Served", value: servedCount > 0 ? servedCount : (metrics.orderCount === 0 ? 1 : 0), color: "#6F452A" },
+    { name: "Preparing", value: preparingCount, color: "#D25E1A" }
   ];
 
   const totalSalesNum = parseFloat(metrics.totalSales) || 0;
@@ -358,29 +363,15 @@ export function DashboardView({
           </div>
 
           {/* Status Breakdown Legend */}
-          <div className="flex-1 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#E5A93C]" />
-                <span className="text-[#8C7B70]">Pending</span>
-              </div>
-              <span className="font-bold text-[#2D1C13]">0</span>
-            </div>
-
+          <div className="flex-1 space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#D25E1A]" />
                 <span className="text-[#8C7B70]">Preparing</span>
               </div>
-              <span className="font-bold text-[#2D1C13]">0</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#256A38]" />
-                <span className="text-[#8C7B70]">Ready</span>
-              </div>
-              <span className="font-bold text-[#2D1C13]">0</span>
+              <span className={`font-bold ${preparingCount > 0 ? "text-[#D25E1A]" : "text-[#2D1C13]"}`}>
+                {preparingCount}
+              </span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -388,8 +379,18 @@ export function DashboardView({
                 <div className="w-2.5 h-2.5 rounded-full bg-[#6F452A]" />
                 <span className="text-[#8C7B70]">Served</span>
               </div>
-              <span className="font-bold text-[#2D1C13]">{metrics.orderCount}</span>
+              <span className="font-bold text-[#2D1C13]">{servedCount}</span>
             </div>
+
+            {cancelledCount > 0 && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                  <span className="text-[#8C7B70]">Cancelled</span>
+                </div>
+                <span className="font-bold text-red-600">{cancelledCount}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

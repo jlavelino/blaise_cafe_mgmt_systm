@@ -29,10 +29,10 @@ export async function getClosingPreview(_req: Request, res: Response): Promise<v
       }
     });
 
-    // Fetch all completed orders today
+    // Fetch all active/completed orders today
     const orders = await prisma.order.findMany({
       where: {
-        status: "COMPLETED",
+        status: { in: ["PREPARING", "SERVED", "COMPLETED"] as any },
         createdAt: {
           gte: startOfDay,
           lte: endOfDay
@@ -113,7 +113,7 @@ export async function submitDailyClosing(req: Request, res: Response): Promise<v
     // Re-verify official sales from database
     const orders = await prisma.order.findMany({
       where: {
-        status: "COMPLETED",
+        status: { in: ["PREPARING", "SERVED", "COMPLETED"] as any },
         createdAt: {
           gte: startOfDay,
           lte: endOfDay
