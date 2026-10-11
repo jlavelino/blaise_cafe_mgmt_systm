@@ -15,7 +15,8 @@ import {
   Calendar,
   Coffee,
   SlidersHorizontal,
-  CheckCircle2
+  CheckCircle2,
+  Check
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
@@ -116,14 +117,27 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
     fetchOrders(effectiveDate);
   }, [effectiveDate, fetchOrders]);
 
+  const [togglingItemId, setTogglingItemId] = useState<string | null>(null);
+
   // Update order status with optimistic update
   const handleUpdateStatus = async (orderId: string, newStatus: "PREPARING" | "SERVED") => {
     if (!token) return;
     setUpdatingId(orderId);
 
-    // Optimistically update local state immediately
+    // Optimistically update local state immediately (including all line items)
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: newStatus,
+              items: o.items.map((item) => ({
+                ...item,
+                isServed: newStatus === "SERVED"
+              }))
+            }
+          : o
+      )
     );
 
     try {
@@ -139,12 +153,63 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Failed to update order status");
       }
+      if (json.data) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? json.data : o))
+        );
+      }
     } catch (err) {
       console.error("Status update error:", err);
       // Revert if error
       fetchOrders(effectiveDate);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  // Toggle individual item served state (e.g., Siomai served first, coffee later)
+  const handleToggleItemServed = async (orderId: string, itemId: string) => {
+    if (!token) return;
+    setTogglingItemId(itemId);
+
+    // Optimistically toggle item status locally
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (order.id !== orderId) return order;
+        const updatedItems = order.items.map((item) =>
+          item.id === itemId ? { ...item, isServed: !item.isServed } : item
+        );
+        const allServed =
+          updatedItems.length > 0 && updatedItems.every((item) => item.isServed);
+        return {
+          ...order,
+          status: allServed ? "SERVED" : "PREPARING",
+          items: updatedItems
+        };
+      })
+    );
+
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderId}/items/${itemId}/toggle-served`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Failed to toggle item served state");
+      }
+      if (json.data) {
+        setOrders((prevOrders) =>
+          prevOrders.map((o) => (o.id === orderId ? json.data : o))
+        );
+      }
+    } catch (err) {
+      console.error("Error toggling item served:", err);
+      fetchOrders(effectiveDate);
+    } finally {
+      setTogglingItemId(null);
     }
   };
 
@@ -409,6 +474,8 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
             const isPreparing = order.status === "PREPARING";
             const isCancelled = order.status === "CANCELLED";
             const isUpdating = updatingId === order.id;
+            const servedItemsCount = order.items.filter((i) => i.isServed).length;
+            const totalItemsCount = order.items.length;
 
             return (
               <div
@@ -432,7 +499,9 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                   {isPreparing ? (
                     <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF1E5] text-[#D25E1A] border border-[#FAD7C0]">
                       <Coffee className="w-3 h-3 animate-pulse" />
-                      <span>PREPARING</span>
+                      <span>
+                        PREPARING {totalItemsCount > 1 ? `(${servedItemsCount}/${totalItemsCount})` : ""}
+                      </span>
                     </span>
                   ) : isCancelled ? (
                     <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
@@ -446,22 +515,86 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                   )}
                 </div>
 
-                {/* Items bullet preview */}
-                <div className="space-y-1 text-xs text-[#2D1C13] pl-1">
-                  {order.items.slice(0, 3).map((item, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <span className="text-[#8C5837]">▸</span>
-                      <span>
-                        {item.itemNameSnapshot} x{item.quantity}
-                      </span>
-                    </div>
-                  ))}
-                  {order.items.length > 3 && (
-                    <div className="text-[10px] text-[#8C7B70] italic pl-3">
-                      +{order.items.length - 3} more items...
-                    </div>
-                  )}
-                </div>
+                {/* Items Fulfillment Area */}
+                {activeTab === "active" ? (
+                  /* Interactive Line-Item Checklist (Today's Active) */
+                  <div className="space-y-1.5 pt-0.5">
+                    {order.items.map((item) => {
+                      const isItemServed = !!item.isServed;
+                      const isThisToggling = togglingItemId === item.id;
+
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleItemServed(order.id, item.id);
+                          }}
+                          className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer active:scale-[0.98] ${
+                            isItemServed
+                              ? "bg-[#EAF7ED]/70 text-[#256A38] border border-[#C6EBD0]/70"
+                              : "bg-[#FBF8F2] text-[#2D1C13] border border-[#EFE8DE] hover:border-[#6F452A]/40"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                            <div
+                              className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                                isItemServed
+                                  ? "bg-[#256A38] text-white"
+                                  : "border-1.5 border-[#8C7B70]/50 bg-white"
+                              }`}
+                            >
+                              {isItemServed ? (
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              ) : isThisToggling ? (
+                                <RefreshCw className="w-2 h-2 animate-spin text-[#8C7B70]" />
+                              ) : null}
+                            </div>
+
+                            <span
+                              className={`truncate text-xs ${
+                                isItemServed
+                                  ? "line-through text-[#8C7B70] font-medium"
+                                  : "font-semibold text-[#2D1C13]"
+                              }`}
+                            >
+                              {item.quantity}x {item.itemNameSnapshot}
+                            </span>
+                          </div>
+
+                          <div className="flex-shrink-0">
+                            {isItemServed ? (
+                              <span className="text-[10px] font-bold text-[#256A38] bg-[#EAF7ED] px-2 py-0.5 rounded-full">
+                                Served ✓
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-[#D25E1A] bg-[#FFF1E5] px-2 py-0.5 rounded-full">
+                                Tap when served
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Static Items View (Past History Archive) */
+                  <div className="space-y-1 text-xs text-[#2D1C13] pl-1">
+                    {order.items.slice(0, 3).map((item, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="text-[#256A38]">✓</span>
+                        <span>
+                          {item.quantity}x {item.itemNameSnapshot}
+                        </span>
+                      </div>
+                    ))}
+                    {order.items.length > 3 && (
+                      <div className="text-[10px] text-[#8C7B70] italic pl-3">
+                        +{order.items.length - 3} more items...
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Footer: Total & Payment Badge */}
                 <div className="pt-2 border-t border-[#F5EFEB] flex items-center justify-between text-xs">
@@ -503,7 +636,7 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                       ) : (
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       )}
-                      <span>Mark as Served ✓</span>
+                      <span>Mark All as Served ✓</span>
                     </button>
                   </div>
                 )}
@@ -520,7 +653,7 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                       disabled={isUpdating}
                       className="text-[10px] text-[#8C7B70] hover:text-[#D25E1A] transition-colors cursor-pointer"
                     >
-                      ↩ Revert to Preparing
+                      ↩ Revert All to Preparing
                     </button>
                   </div>
                 )}

@@ -64,99 +64,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen relative flex flex-col justify-between bg-[#FBF8F2] overflow-hidden select-none">
-      {/* Top Branding Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12 pb-4 z-10">
-        {/* Coffee Cup Artistic Logo */}
-        <div className="relative mb-6">
+    <div className="h-[100dvh] min-h-[100dvh] relative flex flex-col justify-between bg-[#FBF8F2] overflow-hidden select-none">
+      {/* Top Branding Section with Official Logo */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 pb-2 z-10">
+        <div className="relative mb-2">
           {/* Warm background glow blob */}
-          <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full bg-[#E2B184]/40 blur-sm pointer-events-none" />
+          <div className="absolute inset-0 bg-[#E2B184]/20 blur-xl rounded-full scale-110 pointer-events-none" />
           
-          <svg
-            className="w-28 h-28 text-[#6F452A]"
-            viewBox="0 0 100 100"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Soft oval background accent behind cup */}
-            <ellipse cx="65" cy="50" rx="20" ry="14" fill="#C69068" opacity="0.85" />
-            
-            {/* Steam lines */}
-            <path
-              d="M38 22C41 17 44 24 47 19"
-              stroke="#6F452A"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            <path
-              d="M48 20C51 14 55 22 58 16"
-              stroke="#6F452A"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            
-            {/* Cup Rim */}
-            <ellipse
-              cx="48"
-              cy="34"
-              rx="24"
-              ry="7"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              fill="#FBF8F2"
-            />
-            {/* Liquid inside */}
-            <ellipse cx="48" cy="34" rx="19" ry="4.5" fill="#6F452A" />
-
-            {/* Cup Body */}
-            <path
-              d="M26 36C27 54 35 64 48 64C61 64 69 54 70 36"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              fill="none"
-            />
-
-            {/* Cup Handle */}
-            <path
-              d="M68 40C76 40 80 46 80 50C80 55 74 58 66 58"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              fill="none"
-            />
-
-            {/* Saucer */}
-            <path
-              d="M20 68C32 75 64 75 76 68"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-            />
-          </svg>
+          <img
+            src="/Blaise_Cafe_Logo.png"
+            alt="Blaise Café - Coffee • Break • Laugh"
+            className="relative w-64 sm:w-80 max-w-[320px] h-auto object-contain mx-auto drop-shadow-md transition-transform hover:scale-102"
+          />
         </div>
-
-        {/* Brand Titles */}
-        <h1 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-[#2D1C13] mb-1">
-          Blaise
-        </h1>
-
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs text-[#8C5837]">✦</span>
-          <span className="text-sm font-bold tracking-[0.25em] text-[#6F452A] uppercase">
-            CAFÉ
-          </span>
-          <span className="text-xs text-[#8C5837]">✦</span>
-        </div>
-
-        <p className="text-[10px] sm:text-xs font-semibold tracking-[0.3em] text-[#8C7B70] uppercase">
-          COFFEE • BREAK • LAUGH
-        </p>
       </div>
 
       {/* Decorative Floating Coffee Beans */}
-      <div className="absolute bottom-52 right-8 pointer-events-none opacity-80 z-20">
-        <svg width="48" height="40" viewBox="0 0 60 50" fill="none">
+      <div className="absolute bottom-48 sm:bottom-52 right-6 sm:right-8 pointer-events-none opacity-80 z-20">
+        <svg width="44" height="38" viewBox="0 0 60 50" fill="none">
           {/* Bean 1 */}
           <path
             d="M25 8C33 8 38 15 35 23C32 30 23 32 17 28C11 23 15 13 25 8Z"
@@ -185,11 +110,11 @@ export default function LoginPage() {
       </div>
 
       {/* Bottom Wave Organic Illustration & Action Area */}
-      <div className="relative w-full pt-16 z-10">
+      <div className="relative w-full z-10 shrink-0">
         {/* Layered Organic Waves SVG */}
-        <div className="absolute top-0 inset-x-0 w-full overflow-hidden leading-none pointer-events-none">
+        <div className="w-full overflow-hidden leading-none -mb-[2px] pointer-events-none">
           <svg
-            className="w-full h-24 sm:h-32 text-[#8C5837]"
+            className="w-full h-16 sm:h-24 block"
             viewBox="0 0 400 120"
             preserveAspectRatio="none"
           >
@@ -208,26 +133,18 @@ export default function LoginPage() {
         </div>
 
         {/* Buttons on the wave background */}
-        <div className="bg-[#8C5837] px-6 pb-8 pt-4">
+        <div className="bg-[#8C5837] px-6 pt-2 pb-8 sm:pb-10 pb-[max(2rem,env(safe-area-inset-bottom))]">
           <div className="max-w-xs mx-auto space-y-3">
             {/* Primary Login Button */}
             <button
               onClick={() => setIsFormOpen(true)}
-              className="w-full py-3.5 px-6 rounded-full bg-[#5A361F] text-white font-semibold text-sm shadow-md hover:bg-[#4E2E19] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-6 rounded-full bg-[#4A2612] border border-[#D49E78]/60 text-white font-semibold text-sm shadow-xl hover:bg-[#3B1E0E] hover:border-[#D49E78] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <span>Login</span>
             </button>
 
-            {/* Create Account / Portal Info Button */}
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="w-full py-3.5 px-6 rounded-full border border-[#D49E78]/80 text-[#FBF8F2] font-semibold text-sm hover:bg-[#5A361F]/40 active:scale-[0.98] transition-all cursor-pointer"
-            >
-              <span>Owner Portal</span>
-            </button>
-
             {/* Bottom Tagline Caption */}
-            <p className="text-center text-xs text-[#EAD8CA]/80 pt-3 italic font-serif">
+            <p className="text-center text-xs text-[#EAD8CA]/90 pt-1 italic font-serif">
               Good coffee, better days.
             </p>
           </div>
