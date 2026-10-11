@@ -15,6 +15,7 @@ export interface CompletedOrderData {
     unitPrice: string | number;
     quantity: number;
     subtotal: string | number;
+    isServed?: boolean;
   }>;
   payment: {
     id: string;

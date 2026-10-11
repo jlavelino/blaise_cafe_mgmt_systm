@@ -284,6 +284,20 @@ export async function updateOrderStatus(req: Request, res: Response): Promise<vo
       return;
     }
 
+    // If setting to SERVED or COMPLETED, mark all line items as served
+    // If setting back to PREPARING, mark all line items as unserved
+    if (status === "SERVED" || status === "COMPLETED") {
+      await (prisma.orderItem as any).updateMany({
+        where: { orderId: id },
+        data: { isServed: true }
+      });
+    } else if (status === "PREPARING") {
+      await (prisma.orderItem as any).updateMany({
+        where: { orderId: id },
+        data: { isServed: false }
+      });
+    }
+
     const updated = await prisma.order.update({
       where: { id },
       data: { status: status as any },
@@ -305,3 +319,65 @@ export async function updateOrderStatus(req: Request, res: Response): Promise<vo
     });
   }
 }
+
+/**
+ * PATCH /api/orders/:orderId/items/:itemId/toggle-served
+ * Toggles the isServed state for a specific line item.
+ * Automatically synchronizes the overall order status:
+ * - If all items are served -> sets order status to SERVED
+ * - If at least one item is unserved -> sets order status to PREPARING
+ */
+export async function toggleOrderItemServed(req: Request, res: Response): Promise<void> {
+  try {
+    const { orderId, itemId } = req.params;
+
+    const existingItem = await prisma.orderItem.findFirst({
+      where: { id: itemId, orderId }
+    });
+
+    if (!existingItem) {
+      res.status(404).json({
+        success: false,
+        message: "Order item not found"
+      });
+      return;
+    }
+
+    const newServedState = !(existingItem as any).isServed;
+
+    await (prisma.orderItem as any).update({
+      where: { id: itemId },
+      data: { isServed: newServedState }
+    });
+
+    // Check all items in this order
+    const allItems = await prisma.orderItem.findMany({
+      where: { orderId }
+    });
+
+    const allServed = allItems.length > 0 && allItems.every((item: any) => item.isServed);
+    const targetOrderStatus = allServed ? "SERVED" : "PREPARING";
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: targetOrderStatus as any },
+      include: {
+        items: true,
+        payment: true
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Item marked as ${newServedState ? "served" : "preparing"}`,
+      data: updatedOrder
+    });
+  } catch (err) {
+    console.error("Error toggling item served state:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update item served status"
+    });
+  }
+}
+
