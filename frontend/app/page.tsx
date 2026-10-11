@@ -166,25 +166,22 @@ export default function AppMainPage() {
       {/* Top App Header */}
       <header className="sticky top-0 z-30 bg-[#FBF8F2]/95 backdrop-blur-md border-b border-[#EFE8DE] px-4 py-3 flex items-center justify-between max-w-md w-full mx-auto shadow-cafe-sm">
         <div className="flex items-center gap-2.5">
-          {/* Logo Mark */}
-          <div className="w-8 h-8 rounded-full bg-[#F5EFEB] border border-[#EFE8DE] flex items-center justify-center text-[#6F452A]">
-            <Coffee className="w-4 h-4 stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-serif font-bold text-base tracking-tight text-[#2D1C13]">
-                Blaise
-              </span>
-              <span className="text-[10px] font-bold tracking-[0.2em] text-[#8C5837] uppercase">
-                CAFÉ
-              </span>
-            </div>
-            <p className="text-[10px] font-medium text-[#8C7B70] tracking-wide">
+          {/* Prominent Logo */}
+          <img
+            src="/Blaise_Cafe_Logo.png"
+            alt="Blaise Café"
+            className="h-11 sm:h-12 w-auto object-contain flex-shrink-0"
+          />
+          <div className="pl-2 border-l border-[#EFE8DE]">
+            <p className="text-[11px] font-bold tracking-wider text-[#6F452A] uppercase leading-tight">
               {activeTab === "home"
                 ? "Owner Dashboard"
                 : activeTab === "pos"
                 ? "New Order POS"
                 : "Orders Queue"}
+            </p>
+            <p className="text-[9px] text-[#8C7B70] font-medium tracking-tight mt-0.5">
+              Blaise Café Management
             </p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Coffee, Printer, PlusCircle } from "lucide-react";
+import { CheckCircle2, Coffee, Printer, PlusCircle, X } from "lucide-react";
 
 export interface CompletedOrderData {
   id: string;
@@ -50,7 +50,18 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-sm bg-white border border-[#EFE8DE] rounded-3xl p-5 shadow-2xl flex flex-col space-y-4 animate-in zoom-in-95 duration-200 text-[#2D1C13]">
+      <div className="absolute inset-0" onClick={onClose} />
+
+      <div className="relative w-full max-w-sm bg-white border border-[#EFE8DE] rounded-3xl p-5 shadow-2xl flex flex-col space-y-4 animate-in zoom-in-95 duration-200 text-[#2D1C13] z-10">
+        {/* Top-Right Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 rounded-full bg-[#F5EFEB] hover:bg-[#EAE0D5] text-[#6F452A] transition-colors cursor-pointer shadow-xs z-20"
+          title="Close Receipt"
+        >
+          <X className="w-4 h-4 stroke-[2.5]" />
+        </button>
+
         {/* Success Header */}
         <div className="text-center pt-2">
           <div className="w-12 h-12 rounded-full bg-[#EAF7ED] text-[#256A38] flex items-center justify-center mx-auto mb-2 shadow-xs">

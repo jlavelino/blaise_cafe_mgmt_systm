@@ -65,93 +65,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen relative flex flex-col justify-between bg-[#FBF8F2] overflow-hidden select-none">
-      {/* Top Branding Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12 pb-4 z-10">
-        {/* Coffee Cup Artistic Logo */}
-        <div className="relative mb-6">
+      {/* Top Branding Section with Official Logo */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-10 pb-4 z-10">
+        <div className="relative mb-2">
           {/* Warm background glow blob */}
-          <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full bg-[#E2B184]/40 blur-sm pointer-events-none" />
+          <div className="absolute inset-0 bg-[#E2B184]/20 blur-xl rounded-full scale-110 pointer-events-none" />
           
-          <svg
-            className="w-28 h-28 text-[#6F452A]"
-            viewBox="0 0 100 100"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Soft oval background accent behind cup */}
-            <ellipse cx="65" cy="50" rx="20" ry="14" fill="#C69068" opacity="0.85" />
-            
-            {/* Steam lines */}
-            <path
-              d="M38 22C41 17 44 24 47 19"
-              stroke="#6F452A"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            <path
-              d="M48 20C51 14 55 22 58 16"
-              stroke="#6F452A"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            
-            {/* Cup Rim */}
-            <ellipse
-              cx="48"
-              cy="34"
-              rx="24"
-              ry="7"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              fill="#FBF8F2"
-            />
-            {/* Liquid inside */}
-            <ellipse cx="48" cy="34" rx="19" ry="4.5" fill="#6F452A" />
-
-            {/* Cup Body */}
-            <path
-              d="M26 36C27 54 35 64 48 64C61 64 69 54 70 36"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              fill="none"
-            />
-
-            {/* Cup Handle */}
-            <path
-              d="M68 40C76 40 80 46 80 50C80 55 74 58 66 58"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              fill="none"
-            />
-
-            {/* Saucer */}
-            <path
-              d="M20 68C32 75 64 75 76 68"
-              stroke="#2D1C13"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-            />
-          </svg>
+          <img
+            src="/Blaise_Cafe_Logo.png"
+            alt="Blaise Café - Coffee • Break • Laugh"
+            className="relative w-72 sm:w-80 max-w-[340px] h-auto object-contain mx-auto drop-shadow-md transition-transform hover:scale-102"
+          />
         </div>
-
-        {/* Brand Titles */}
-        <h1 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-[#2D1C13] mb-1">
-          Blaise
-        </h1>
-
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs text-[#8C5837]">✦</span>
-          <span className="text-sm font-bold tracking-[0.25em] text-[#6F452A] uppercase">
-            CAFÉ
-          </span>
-          <span className="text-xs text-[#8C5837]">✦</span>
-        </div>
-
-        <p className="text-[10px] sm:text-xs font-semibold tracking-[0.3em] text-[#8C7B70] uppercase">
-          COFFEE • BREAK • LAUGH
-        </p>
       </div>
 
       {/* Decorative Floating Coffee Beans */}
