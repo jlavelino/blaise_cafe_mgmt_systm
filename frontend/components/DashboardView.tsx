@@ -13,9 +13,7 @@ import {
   ChevronRight,
   Moon,
   Wallet,
-  Receipt,
-  ArrowUpRight,
-  PlusCircle
+  Receipt
 } from "lucide-react";
 import {
   BarChart,
@@ -198,7 +196,7 @@ export function DashboardView({
 
   return (
     <div className="max-w-md w-full mx-auto px-4 pt-3 pb-28 space-y-4">
-      {/* Top Greeting & Date Header (Matching 3.jpg Screen 2) */}
+      {/* Top Greeting & Date Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
           <h2 className="font-serif text-xl font-bold text-[#2D1C13]">
@@ -219,90 +217,85 @@ export function DashboardView({
         </button>
       </div>
 
-      {/* Hero Card: Today's Sales (Matching 3.jpg Screen 2) */}
+      {/* Hero Card: Today's Sales */}
       <div className="p-5 rounded-2xl bg-white border border-[#EFE8DE] shadow-cafe space-y-2">
         <div className="flex items-center justify-between text-xs text-[#8C7B70] font-medium">
           <span>Today&apos;s Sales</span>
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-[#256A38] bg-[#EAF7ED] px-2 py-0.5 rounded-full">
-            <ArrowUpRight className="w-3 h-3" />
-            <span>Active Today</span>
-          </span>
         </div>
 
         <div className="font-serif text-3xl sm:text-4xl font-bold text-[#2D1C13] tracking-tight">
           ₱ {totalSalesNum.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-[#F5EFEB] text-xs text-[#8C7B70]">
+        <div className="pt-2 border-t border-[#F5EFEB] text-xs text-[#8C7B70]">
           <span>{metrics.orderCount} total orders completed</span>
-          <span>Avg. ₱{metrics.averageOrderValue}/cup</span>
         </div>
       </div>
 
-      {/* 2x2 Financial Quick Grid (Matching 3.jpg Screen 2) */}
+      {/* 2x2 Financial Quick Grid with Distinct Ambient Personalities */}
       <div className="grid grid-cols-2 gap-3">
-        {/* 1. Cash */}
-        <div className="p-4 rounded-2xl bg-white border border-[#EFE8DE] shadow-cafe-sm flex flex-col justify-between">
+        {/* 1. Cash (Warm Soft Caramel) */}
+        <div className="p-4 rounded-2xl bg-[#FAF4EE] border border-[#EAD8CA] shadow-cafe-sm flex flex-col justify-between hover:border-[#6F452A]/40 transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-[#F5EFEB] text-[#6F452A] flex items-center justify-center">
-              <Wallet className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-full bg-[#EFE3D5] text-[#6F452A] flex items-center justify-center shadow-2xs">
+              <Wallet className="w-3.5 h-3.5 stroke-[2.2]" />
             </div>
-            <span className="text-[11px] font-bold text-[#8C7B70]">
+            <span className="text-[11px] font-bold text-[#6F452A]">
               Cash
             </span>
           </div>
           <div className="font-serif text-lg font-bold text-[#2D1C13]">
             ₱ {cashSalesNum.toLocaleString()}
           </div>
-          <span className="text-[10px] text-[#8C7B70] mt-0.5">Physical drawer</span>
+          <span className="text-[10px] text-[#8C7B70] mt-0.5 font-medium">Physical drawer</span>
         </div>
 
-        {/* 2. GCash */}
-        <div className="p-4 rounded-2xl bg-white border border-[#EFE8DE] shadow-cafe-sm flex flex-col justify-between">
+        {/* 2. GCash (Subtle Soft Sky Blue) */}
+        <div className="p-4 rounded-2xl bg-[#F0F7FF] border border-[#D4E7FD] shadow-cafe-sm flex flex-col justify-between hover:border-[#007DFE]/40 transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-[#EBF3FF] text-[#007DFE] flex items-center justify-center">
-              <QrCode className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-full bg-[#DDEBFC] text-[#007DFE] flex items-center justify-center shadow-2xs">
+              <QrCode className="w-3.5 h-3.5 stroke-[2.2]" />
             </div>
-            <span className="text-[11px] font-bold text-[#8C7B70]">
+            <span className="text-[11px] font-bold text-[#007DFE]">
               GCash
             </span>
           </div>
           <div className="font-serif text-lg font-bold text-[#007DFE]">
             ₱ {gcashNetNum.toLocaleString()}
           </div>
-          <span className="text-[10px] text-[#8C7B70] mt-0.5">Net received</span>
+          <span className="text-[10px] text-[#5B8FB9] mt-0.5 font-medium">Net received</span>
         </div>
 
-        {/* 3. GCash Fees */}
-        <div className="p-4 rounded-2xl bg-white border border-[#EFE8DE] shadow-cafe-sm flex flex-col justify-between">
+        {/* 3. GCash Fees (Subtle Soft Peach) */}
+        <div className="p-4 rounded-2xl bg-[#FFF6F0] border border-[#FBD9C3] shadow-cafe-sm flex flex-col justify-between hover:border-[#D25E1A]/40 transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-[#FFF1E5] text-[#D25E1A] flex items-center justify-center">
-              <Receipt className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-full bg-[#FFE8D6] text-[#D25E1A] flex items-center justify-center shadow-2xs">
+              <Receipt className="w-3.5 h-3.5 stroke-[2.2]" />
             </div>
-            <span className="text-[11px] font-bold text-[#8C7B70]">
+            <span className="text-[11px] font-bold text-[#D25E1A]">
               GCash Fees
             </span>
           </div>
           <div className="font-serif text-lg font-bold text-[#D25E1A]">
             ₱ {gcashFeesNum.toFixed(2)}
           </div>
-          <span className="text-[10px] text-[#8C7B70] mt-0.5">Deducted fee</span>
+          <span className="text-[10px] text-[#A86E4B] mt-0.5 font-medium">Deducted fee</span>
         </div>
 
-        {/* 4. Net Sales */}
-        <div className="p-4 rounded-2xl bg-white border border-[#EFE8DE] shadow-cafe-sm flex flex-col justify-between">
+        {/* 4. Net Sales (Soft Emerald Highlight) */}
+        <div className="p-4 rounded-2xl bg-[#F0FAF2] border border-[#C8EAD0] shadow-cafe-sm flex flex-col justify-between hover:border-[#256A38]/40 transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-[#EAF7ED] text-[#256A38] flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-full bg-[#DCF3E1] text-[#256A38] flex items-center justify-center shadow-2xs">
+              <TrendingUp className="w-3.5 h-3.5 stroke-[2.2]" />
             </div>
-            <span className="text-[11px] font-bold text-[#8C7B70]">
+            <span className="text-[11px] font-bold text-[#256A38]">
               Net Sales
             </span>
           </div>
           <div className="font-serif text-lg font-bold text-[#256A38]">
             ₱ {(cashSalesNum + gcashNetNum).toLocaleString()}
           </div>
-          <span className="text-[10px] text-[#8C7B70] mt-0.5">Realized income</span>
+          <span className="text-[10px] text-[#2E7D46] mt-0.5 font-medium">Realized income</span>
         </div>
       </div>
 

@@ -497,21 +497,51 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                   </div>
 
                   {isPreparing ? (
-                    <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF1E5] text-[#D25E1A] border border-[#FAD7C0]">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateStatus(order.id, "SERVED");
+                      }}
+                      disabled={isUpdating}
+                      className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF1E5] text-[#D25E1A] border border-[#FAD7C0] hover:bg-[#FFE8D6] active:scale-95 transition-all cursor-pointer shadow-2xs"
+                      title="Tap to mark all items as served"
+                    >
                       <Coffee className="w-3 h-3 animate-pulse" />
                       <span>
                         PREPARING {totalItemsCount > 1 ? `(${servedItemsCount}/${totalItemsCount})` : ""}
                       </span>
-                    </span>
+                      <span className="opacity-40">•</span>
+                      <span className="underline decoration-[#D25E1A]/40 font-semibold">Mark All ✓</span>
+                    </button>
                   ) : isCancelled ? (
                     <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
                       CANCELLED
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EAF7ED] text-[#256A38] border border-[#C6EBD0]">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (activeTab === "active") {
+                          handleUpdateStatus(order.id, "PREPARING");
+                        }
+                      }}
+                      disabled={isUpdating}
+                      className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EAF7ED] text-[#256A38] border border-[#C6EBD0] transition-all shadow-2xs ${
+                        activeTab === "active" ? "hover:bg-[#DCF3E1] active:scale-95 cursor-pointer" : ""
+                      }`}
+                      title={activeTab === "active" ? "Tap to revert to preparing" : undefined}
+                    >
                       <CheckCircle2 className="w-3 h-3" />
                       <span>SERVED</span>
-                    </span>
+                      {activeTab === "active" && (
+                        <>
+                          <span className="opacity-40">•</span>
+                          <span className="font-normal opacity-90 text-[9px]">↺ Revert</span>
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
 
@@ -530,45 +560,59 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                             e.stopPropagation();
                             handleToggleItemServed(order.id, item.id);
                           }}
-                          className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer active:scale-[0.98] ${
+                          className={`group flex items-center justify-between p-2 min-h-[38px] rounded-xl transition-all duration-300 cursor-pointer active:scale-[0.97] select-none ${
                             isItemServed
-                              ? "bg-[#EAF7ED]/70 text-[#256A38] border border-[#C6EBD0]/70"
-                              : "bg-[#FBF8F2] text-[#2D1C13] border border-[#EFE8DE] hover:border-[#6F452A]/40"
+                              ? "bg-[#F0FAF2] text-[#256A38] border border-[#C6EBD0] shadow-2xs"
+                              : "bg-[#FBF8F2] text-[#2D1C13] border border-[#EFE8DE] hover:border-[#C69068]"
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            {/* Emerald Checkmark Circle */}
                             <div
-                              className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                              className={`w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 ${
                                 isItemServed
-                                  ? "bg-[#256A38] text-white"
-                                  : "border-1.5 border-[#8C7B70]/50 bg-white"
+                                  ? "bg-[#256A38] text-white shadow-xs ring-2 ring-[#256A38]/20 animate-pop-bounce"
+                                  : "border-2 border-[#C69068]/60 bg-white group-hover:border-[#256A38]"
                               }`}
                             >
                               {isItemServed ? (
-                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                <Check className="w-3 h-3 stroke-[3]" />
                               ) : isThisToggling ? (
-                                <RefreshCw className="w-2 h-2 animate-spin text-[#8C7B70]" />
+                                <RefreshCw className="w-2.5 h-2.5 animate-spin text-[#C69068]" />
                               ) : null}
                             </div>
 
-                            <span
-                              className={`truncate text-xs ${
-                                isItemServed
-                                  ? "line-through text-[#8C7B70] font-medium"
-                                  : "font-semibold text-[#2D1C13]"
-                              }`}
-                            >
-                              {item.quantity}x {item.itemNameSnapshot}
-                            </span>
+                            {/* Line-item text with smooth animated strikethrough */}
+                            <div className="relative inline-flex items-center truncate">
+                              <span
+                                className={`text-xs transition-colors duration-300 truncate ${
+                                  isItemServed
+                                    ? "text-[#8C7B70]/80 font-normal"
+                                    : "font-semibold text-[#2D1C13]"
+                                }`}
+                              >
+                                {item.quantity}x {item.itemNameSnapshot}
+                              </span>
+
+                              {/* Animated Strikethrough Line */}
+                              <span
+                                className={`absolute left-0 top-1/2 -translate-y-1/2 h-[1.5px] bg-[#256A38] rounded-full transition-all duration-300 ease-out origin-left pointer-events-none ${
+                                  isItemServed
+                                    ? "w-full scale-x-100 opacity-80"
+                                    : "w-full scale-x-0 opacity-0"
+                                }`}
+                              />
+                            </div>
                           </div>
 
                           <div className="flex-shrink-0">
                             {isItemServed ? (
-                              <span className="text-[10px] font-bold text-[#256A38] bg-[#EAF7ED] px-2 py-0.5 rounded-full">
-                                Served ✓
+                              <span className="text-[10px] font-bold text-[#256A38] bg-[#EAF7ED] border border-[#C6EBD0] px-2.5 py-0.5 rounded-full transition-all duration-300 flex items-center gap-1 shadow-2xs">
+                                <span>Served</span>
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
                               </span>
                             ) : (
-                              <span className="text-[10px] font-semibold text-[#D25E1A] bg-[#FFF1E5] px-2 py-0.5 rounded-full">
+                              <span className="text-[10px] font-semibold text-[#D25E1A] bg-[#FFF1E5] border border-[#FAD7C0] px-2.5 py-0.5 rounded-full group-hover:bg-[#FFE8D6] transition-colors">
                                 Tap when served
                               </span>
                             )}
@@ -599,7 +643,7 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                 {/* Footer: Total & Payment Badge */}
                 <div className="pt-2 border-t border-[#F5EFEB] flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 font-bold text-[#6F452A]">
-                    <span className="text-[#8C5837]">▸</span>
+                    <span className="text-[#8C7B70]">▸</span>
                     <span>Total: ₱{Number(order.total).toFixed(0)}</span>
                   </div>
 
@@ -618,45 +662,6 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
                     <ChevronRight className="w-3.5 h-3.5 text-[#8C7B70]" />
                   </div>
                 </div>
-
-                {/* 1-Tap Action Button for Barista */}
-                {isPreparing && (
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUpdateStatus(order.id, "SERVED");
-                      }}
-                      disabled={isUpdating}
-                      className="w-full py-2.5 px-3 rounded-xl bg-[#6F452A] hover:bg-[#5A361F] text-white text-xs font-bold transition-all shadow-cafe-sm flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer disabled:opacity-50"
-                    >
-                      {isUpdating ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      )}
-                      <span>Mark All as Served ✓</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Subtle Revert Button for Active Served Orders */}
-                {!isPreparing && !isCancelled && activeTab === "active" && (
-                  <div className="flex items-center justify-end pt-0.5">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUpdateStatus(order.id, "PREPARING");
-                      }}
-                      disabled={isUpdating}
-                      className="text-[10px] text-[#8C7B70] hover:text-[#D25E1A] transition-colors cursor-pointer"
-                    >
-                      ↩ Revert All to Preparing
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })}
