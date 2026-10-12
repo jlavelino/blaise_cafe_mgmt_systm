@@ -20,6 +20,19 @@ export function CartTray({ onProceedToCheckout }: CartTrayProps) {
     setIsCartOpen
   } = useCart();
 
+  const [isBouncing, setIsBouncing] = React.useState(false);
+  const prevCountRef = React.useRef(itemCount);
+
+  React.useEffect(() => {
+    if (itemCount > prevCountRef.current) {
+      setIsBouncing(true);
+      const timer = setTimeout(() => setIsBouncing(false), 450);
+      prevCountRef.current = itemCount;
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = itemCount;
+  }, [itemCount]);
+
   if (itemCount === 0) return null;
 
   return (
@@ -63,7 +76,7 @@ export function CartTray({ onProceedToCheckout }: CartTrayProps) {
               </div>
             </div>
 
-            {/* Table Header like 3.jpg Screen 4 */}
+            {/* Table Header */}
             <div className="grid grid-cols-12 px-4 py-2 bg-[#FBF8F2] text-[10px] font-bold text-[#8C7B70] uppercase tracking-wider border-b border-[#F5EFEB]">
               <span className="col-span-5">Items</span>
               <span className="col-span-3 text-center">Qty</span>
@@ -156,34 +169,53 @@ export function CartTray({ onProceedToCheckout }: CartTrayProps) {
         </div>
       )}
 
-      {/* Floating Bottom Bar (Sticky above Bottom Nav) */}
-      <div className="fixed bottom-16 inset-x-0 z-30 p-3 max-w-md mx-auto pointer-events-none">
+      {/* Floating Quick-Checkout Bar (Pill shaped, floating above Bottom Nav) */}
+      <div className="fixed bottom-16 sm:bottom-18 inset-x-0 z-30 px-3 max-w-md mx-auto pointer-events-none">
         <div
-          onClick={() => setIsCartOpen(true)}
-          className="pointer-events-auto bg-white border border-[#EFE8DE] hover:border-[#6F452A]/50 rounded-2xl p-3 shadow-cafe-lg flex items-center justify-between cursor-pointer transition-all active:scale-[0.99]"
+          className={`pointer-events-auto rounded-full bg-[#2D1C13] text-white border border-[#D49E78]/50 shadow-2xl p-1.5 pl-3 flex items-center justify-between transition-all select-none ${
+            isBouncing ? "animate-pop-bounce ring-4 ring-[#D49E78]/50 scale-[1.03]" : ""
+          }`}
         >
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-xl bg-[#F5EFEB] text-[#6F452A] flex items-center justify-center font-black shadow-xs">
-              <ShoppingBag className="w-5 h-5" />
-              <span className="absolute -top-1.5 -right-1.5 bg-[#6F452A] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+          {/* Left section: Open Cart Drawer */}
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="flex items-center gap-2.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer py-1 text-left min-w-0 flex-1"
+            title="Tap to review order items"
+          >
+            <div className="relative w-8 h-8 rounded-full bg-[#6F452A] text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm border border-[#D49E78]/40">
+              <ShoppingBag className="w-4 h-4 text-amber-200" />
+              <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#2D1C13]">
                 {itemCount}
               </span>
             </div>
 
-            <div>
-              <div className="text-[10px] text-[#8C7B70] uppercase tracking-wider font-semibold">
-                Order Total
-              </div>
-              <div className="font-serif text-lg font-bold text-[#6F452A] leading-tight">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="text-xs font-semibold text-[#EAD8CA]">
+                {itemCount} {itemCount === 1 ? "item" : "items"}
+              </span>
+              <span className="text-white/40">•</span>
+              <span className="font-serif text-sm font-bold text-white tracking-tight">
                 ₱{subtotal.toFixed(0)}
-              </div>
+              </span>
             </div>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#6F452A] text-white text-xs font-semibold hover:bg-[#5A361F] transition-colors shadow-xs">
-            <span>View Cart</span>
-            <ChevronUp className="w-3.5 h-3.5" />
-          </div>
+          {/* Vertical Divider */}
+          <div className="h-6 w-px bg-white/20 mx-1 flex-shrink-0" />
+
+          {/* Right section: 1-Tap Quick Charge Action */}
+          <button
+            onClick={() => {
+              if (onProceedToCheckout) {
+                onProceedToCheckout();
+              }
+            }}
+            className="flex items-center gap-1.5 py-2 px-4 rounded-full bg-gradient-to-r from-[#C69068] to-[#8C5837] text-white font-bold text-xs shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+            title="Charge Now"
+          >
+            <span>Charge</span>
+            <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+          </button>
         </div>
       </div>
     </>
