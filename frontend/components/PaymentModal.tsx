@@ -33,7 +33,6 @@ export function PaymentModal({
 
   const [method, setMethod] = useState<"CASH" | "GCASH">("CASH");
   const [cashGiven, setCashGiven] = useState<string>(String(subtotal));
-  const [feePercentage, setFeePercentage] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -59,9 +58,6 @@ export function PaymentModal({
   const change = Math.max(0, cashAmountNum - subtotal);
   const isCashInsufficient = method === "CASH" && cashAmountNum < subtotal;
 
-  const gcashFeeAmount = (subtotal * feePercentage) / 100;
-  const gcashNetAmount = subtotal - gcashFeeAmount;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
@@ -81,7 +77,7 @@ export function PaymentModal({
         payment: {
           method,
           amountTendered: method === "CASH" ? cashAmountNum : subtotal,
-          feePercentage: method === "GCASH" ? feePercentage : 0
+          feePercentage: 0
         },
         notes: notes.trim() || undefined
       };
@@ -257,50 +253,13 @@ export function PaymentModal({
 
           {/* GCASH WORKFLOW */}
           {method === "GCASH" && (
-            <div className="space-y-3.5 mb-5">
-              <div className="p-3.5 rounded-2xl bg-[#EBF3FF] border border-[#007DFE]/20 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#007DFE]">GCash Gross:</span>
-                  <span className="font-bold text-[#007DFE]">₱{subtotal.toFixed(2)}</span>
+            <div className="mb-5">
+              <div className="p-3.5 rounded-2xl bg-[#EBF3FF] border border-[#007DFE]/20 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-[#007DFE] block">GCash Payment</span>
+                  <span className="text-[11px] text-[#5584B3]">Scan QR / verify customer transfer</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#8C7B70]">Fee ({feePercentage}%):</span>
-                  <span className="font-bold text-[#D25E1A]">-₱{gcashFeeAmount.toFixed(2)}</span>
-                </div>
-                <div className="pt-2 border-t border-[#007DFE]/20 flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#2D1C13]">Net In Bank:</span>
-                  <span className="font-bold text-[#256A38]">₱{gcashNetAmount.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-[#8C7B70] mb-1.5 uppercase tracking-wider">
-                  Merchant Fee Preset
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFeePercentage(0)}
-                    className={`py-2 text-xs font-bold rounded-full transition-all cursor-pointer ${
-                      feePercentage === 0
-                        ? "bg-[#6F452A] text-white shadow-xs"
-                        : "bg-[#FBF8F2] text-[#8C7B70] border border-[#EFE8DE]"
-                    }`}
-                  >
-                    0% (Personal QR)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFeePercentage(2.0)}
-                    className={`py-2 text-xs font-bold rounded-full transition-all cursor-pointer ${
-                      feePercentage === 2.0
-                        ? "bg-[#6F452A] text-white shadow-xs"
-                        : "bg-[#FBF8F2] text-[#8C7B70] border border-[#EFE8DE]"
-                    }`}
-                  >
-                    2.0% (Merchant QRPH)
-                  </button>
-                </div>
+                <span className="text-xl font-bold text-[#007DFE]">₱{subtotal.toFixed(2)}</span>
               </div>
             </div>
           )}

@@ -15,6 +15,7 @@ import { BottomNavBar, ActiveTab } from "@/components/BottomNavBar";
 import { DashboardView } from "@/components/DashboardView";
 import { OrderHistoryView } from "@/components/OrderHistoryView";
 import { DailyClosingModal } from "@/components/DailyClosingModal";
+import { CozyEmptyState } from "@/components/CozyEmptyState";
 import { API_BASE } from "@/lib/api";
 import {
   Coffee,
@@ -290,14 +291,17 @@ export default function AppMainPage() {
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-12 space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-white border border-[#EFE8DE] flex items-center justify-center mx-auto text-[#8C7B70] shadow-cafe-sm">
-                  <Sparkles className="w-6 h-6 text-[#C69068]" />
-                </div>
-                <p className="text-xs font-bold text-[#2D1C13]">No items found</p>
-                <p className="text-[11px] text-[#8C7B70]">
-                  Try searching with another keyword or select All.
-                </p>
+              <div className="bg-white rounded-2xl border border-[#EFE8DE] shadow-cafe-sm p-6 my-2">
+                <CozyEmptyState
+                  type="search"
+                  title="No items found"
+                  description="Try searching with another keyword or select All to view the full menu."
+                  actionLabel="Reset Filter"
+                  onAction={() => {
+                    setSearchQuery("");
+                    setSelectedCategoryId("ALL");
+                  }}
+                />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
@@ -317,7 +321,10 @@ export default function AppMainPage() {
 
       {/* VIEW: ORDER HISTORY / ORDERS QUEUE */}
       {activeTab === "orders" && (
-        <OrderHistoryView onSelectOrder={(order) => setCompletedOrder(order)} />
+        <OrderHistoryView
+          onSelectOrder={(order) => setCompletedOrder(order)}
+          onOpenPos={() => setActiveTab("pos")}
+        />
       )}
 
       {/* Drink Size Selector Sheet */}
