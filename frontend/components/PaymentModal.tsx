@@ -13,6 +13,7 @@ import {
   Loader2
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
+import { QRPHDisplay } from "./QRPHDisplay";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export function PaymentModal({
 
   const [method, setMethod] = useState<"CASH" | "GCASH">("CASH");
   const [cashGiven, setCashGiven] = useState<string>(String(subtotal));
+  const [referenceNumber, setReferenceNumber] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export function PaymentModal({
   useEffect(() => {
     if (isOpen) {
       setCashGiven(String(subtotal));
+      setReferenceNumber("");
       setErrorMsg(null);
     }
   }, [isOpen, subtotal]);
@@ -69,6 +72,11 @@ export function PaymentModal({
 
     setSubmitting(true);
     try {
+      const finalNotes = [
+        notes.trim(),
+        method === "GCASH" && referenceNumber.trim() ? `[GCash Ref: ${referenceNumber.trim()}]` : ""
+      ].filter(Boolean).join(" ");
+
       const payload = {
         items: items.map((i) => ({
           variantId: i.variantId,
@@ -79,7 +87,7 @@ export function PaymentModal({
           amountTendered: method === "CASH" ? cashAmountNum : subtotal,
           feePercentage: 0
         },
-        notes: notes.trim() || undefined
+        notes: finalNotes || undefined
       };
 
       const res = await fetch(`${API_BASE}/orders`, {
@@ -251,16 +259,14 @@ export function PaymentModal({
             </div>
           )}
 
-          {/* GCASH WORKFLOW */}
+          {/* GCASH WORKFLOW (Dynamic QRPH) */}
           {method === "GCASH" && (
-            <div className="mb-5">
-              <div className="p-3.5 rounded-2xl bg-[#EBF3FF] border border-[#007DFE]/20 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-[#007DFE] block">GCash Payment</span>
-                  <span className="text-[11px] text-[#5584B3]">Scan QR / verify customer transfer</span>
-                </div>
-                <span className="text-xl font-bold text-[#007DFE]">₱{subtotal.toFixed(2)}</span>
-              </div>
+            <div className="mb-4">
+              <QRPHDisplay
+                amount={subtotal}
+                referenceNumber={referenceNumber}
+                onReferenceChange={setReferenceNumber}
+              />
             </div>
           )}
 
