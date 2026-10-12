@@ -19,10 +19,13 @@ import {
   Check
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
+import { CozyEmptyState } from "./CozyEmptyState";
 
 interface OrderHistoryViewProps {
   onSelectOrder: (order: CompletedOrderData) => void;
+  onOpenPos?: () => void;
 }
+
 
 function toDateString(d: Date): string {
   const year = d.getFullYear();
@@ -55,7 +58,7 @@ function formatDisplayDate(dateStr: string): string {
   });
 }
 
-export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
+export function OrderHistoryView({ onSelectOrder, onOpenPos }: OrderHistoryViewProps) {
   const { token } = useAuth();
   const [orders, setOrders] = useState<CompletedOrderData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -437,28 +440,24 @@ export function OrderHistoryView({ onSelectOrder }: OrderHistoryViewProps) {
           ))}
         </div>
       ) : filteredOrders.length === 0 ? (
-        /* Empty State */
-        <div className="p-10 text-center bg-white border border-[#EFE8DE] rounded-2xl shadow-cafe-sm space-y-3">
+        /* Cozy Empty State */
+        <div className="bg-white border border-[#EFE8DE] rounded-2xl shadow-cafe-sm overflow-hidden p-6">
           {activeTab === "active" ? (
-            <>
-              <Coffee className="w-10 h-10 text-[#C69068] mx-auto stroke-[1.8]" />
-              <p className="font-serif text-base font-bold text-[#2D1C13]">
-                No orders placed today yet
-              </p>
-              <p className="text-xs text-[#8C7B70] max-w-xs mx-auto">
-                Orders rung up today will appear here in real time. Switch to <strong>Past History</strong> to view previous days.
-              </p>
-            </>
+            <CozyEmptyState
+              type="steaming-cup"
+              title="Ready for your first brew of the day!"
+              description="No orders recorded yet today. Ring up a fresh brew in the POS to begin serving your customers."
+              actionLabel="Start Brewing in POS"
+              onAction={onOpenPos}
+            />
           ) : (
-            <>
-              <Receipt className="w-10 h-10 text-[#8C7B70] mx-auto stroke-[1.8]" />
-              <p className="font-serif text-base font-bold text-[#2D1C13]">
-                No orders for {formatDisplayDate(historyDate)}
-              </p>
-              <p className="text-xs text-[#8C7B70]">
-                Use the date stepper above to navigate to other days.
-              </p>
-            </>
+            <CozyEmptyState
+              type="calendar"
+              title={`No orders for ${formatDisplayDate(historyDate)}`}
+              description="No completed orders found on this date. Use the date stepper above to navigate to other days."
+              actionLabel="Return to Today's Queue"
+              onAction={() => setActiveTab("active")}
+            />
           )}
         </div>
       ) : (

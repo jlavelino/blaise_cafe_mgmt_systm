@@ -26,6 +26,7 @@ import {
   Cell
 } from "recharts";
 import { API_BASE } from "@/lib/api";
+import { CozyEmptyState } from "./CozyEmptyState";
 
 interface DashboardMetrics {
   totalSales: string;
@@ -451,9 +452,14 @@ export function DashboardView({
         </div>
 
         {topProducts.length === 0 ? (
-          <p className="text-xs text-[#8C7B70] py-3 text-center">
-            No drinks sold yet today. Ring up your first order!
-          </p>
+          <CozyEmptyState
+            type="steaming-cup"
+            compact
+            title="Awaiting Today's First Drinks"
+            description="No drinks sold yet today. Ring up your first order to see leaderboard stats."
+            actionLabel="Open POS"
+            onAction={onNavigateToPOS}
+          />
         ) : (
           <div className="space-y-2">
             {topProducts.map((p, idx) => (
@@ -500,9 +506,14 @@ export function DashboardView({
         </div>
 
         {recentOrders.length === 0 ? (
-          <p className="text-xs text-[#8C7B70] py-3 text-center">
-            No completed sales recorded today yet.
-          </p>
+          <CozyEmptyState
+            type="steaming-cup"
+            compact
+            title="No Completed Sales Yet"
+            description="Completed customer transactions will appear here in real time."
+            actionLabel="Ring Up Sale"
+            onAction={onNavigateToPOS}
+          />
         ) : (
           <div className="space-y-2">
             {recentOrders.slice(0, 5).map((ord) => (

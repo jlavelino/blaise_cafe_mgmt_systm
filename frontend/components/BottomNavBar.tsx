@@ -33,9 +33,22 @@ export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
     },
   ];
 
+  const activeIndex = navItems.findIndex((item) => item.id === activeTab);
+
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#FBF8F2]/95 backdrop-blur-md border-t border-[#EFE8DE] px-4 py-2 max-w-md mx-auto shadow-cafe">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="relative p-1 bg-[#F5EFEB]/90 rounded-2xl border border-[#EAE1D5]/80 flex items-stretch">
+        {/* Sliding Terracotta Highlight Pill */}
+        <div
+          aria-hidden="true"
+          className="absolute top-1 bottom-1 rounded-xl bg-gradient-to-r from-[#8C5837] via-[#7B4D30] to-[#6F452A] shadow-sm shadow-[#6F452A]/25 transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] pointer-events-none"
+          style={{
+            left: "4px",
+            width: "calc((100% - 8px) / 3)",
+            transform: `translateX(calc(${activeIndex >= 0 ? activeIndex : 0} * 100%))`,
+          }}
+        />
+
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -44,34 +57,39 @@ export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`relative flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl transition-all cursor-pointer ${
+              className={`relative z-10 flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                 isActive
-                  ? "text-[#6F452A] font-bold"
-                  : "text-[#8C7B70] hover:text-[#2D1C13] font-medium"
+                  ? "text-white font-bold"
+                  : "text-[#8C7B70] hover:text-[#5A361F] font-medium"
               }`}
             >
-              <div className="relative">
+              <div className="relative flex items-center justify-center">
                 <Icon
-                  className={`w-5 h-5 mb-0.5 transition-transform ${
-                    isActive ? "scale-110 stroke-[2.5]" : "stroke-[1.8]"
+                  className={`w-5 h-5 mb-0.5 transition-all duration-200 ${
+                    isActive
+                      ? "stroke-[2.5] scale-110 drop-shadow-xs"
+                      : "stroke-[1.8]"
                   }`}
                 />
                 {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 bg-[#6F452A] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                  <span
+                    className={`absolute -top-1.5 -right-2.5 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs transition-colors duration-200 ${
+                      isActive
+                        ? "bg-white text-[#6F452A]"
+                        : "bg-[#6F452A] text-white"
+                    }`}
+                  >
                     {item.badge}
                   </span>
                 )}
               </div>
               <span
-                className={`text-[10px] tracking-wide transition-colors ${
-                  isActive ? "text-[#6F452A] font-semibold" : "text-[#8C7B70]"
+                className={`text-[10px] tracking-wide transition-colors duration-200 ${
+                  isActive ? "text-white font-bold" : "text-[#8C7B70]"
                 }`}
               >
                 {item.label}
               </span>
-              {isActive && (
-                <div className="w-1.5 h-1 rounded-full bg-[#6F452A] mt-0.5" />
-              )}
             </button>
           );
         })}
@@ -79,3 +97,4 @@ export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
     </nav>
   );
 }
+
