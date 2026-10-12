@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Product, ProductVariant } from "@/types";
-import { Coffee, Utensils, Sparkles, Plus } from "lucide-react";
+import { Coffee, Utensils, Sparkles, Plus, Check } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -15,6 +15,7 @@ export function ProductCard({
   onSelectProduct,
   onDirectAdd
 }: ProductCardProps) {
+  const [showBubble, setShowBubble] = useState(false);
   const isSingleVariant = product.variants.length === 1;
   const isSnack = product.category?.name.toLowerCase().includes("snack");
   const isMatcha = product.name.toLowerCase().includes("matcha");
@@ -29,8 +30,11 @@ export function ProductCard({
       ? `₱${minPrice.toFixed(0)}`
       : `₱${minPrice.toFixed(0)} - ₱${maxPrice.toFixed(0)}`;
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isSingleVariant && product.variants[0]) {
+      setShowBubble(true);
+      setTimeout(() => setShowBubble(false), 750);
       onDirectAdd(product, product.variants[0]);
     } else {
       onSelectProduct(product);
@@ -48,8 +52,22 @@ export function ProductCard({
   return (
     <div
       onClick={handleClick}
-      className="group relative flex flex-col justify-between p-3 rounded-2xl bg-white border border-[#EFE8DE] hover:border-[#6F452A]/50 active:scale-[0.98] transition-all cursor-pointer shadow-cafe-sm hover:shadow-cafe select-none"
+      className={`group relative flex flex-col justify-between p-3 rounded-2xl bg-white border transition-all cursor-pointer shadow-cafe-sm hover:shadow-cafe select-none active:scale-[0.98] ${
+        showBubble
+          ? "border-[#6F452A] ring-2 ring-[#6F452A]/30 scale-[0.98]"
+          : "border-[#EFE8DE] hover:border-[#6F452A]/50"
+      }`}
     >
+      {/* 1-Tap Quick Add +1 Floating Bubble Feedback */}
+      {showBubble && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <div className="animate-float-up-fade px-3 py-1 rounded-full bg-[#4A2612] text-white text-[11px] font-black shadow-cafe-lg border border-[#D49E78] flex items-center gap-1.5">
+            <span className="text-amber-300 font-extrabold">+1</span>
+            <span className="text-[10px] font-semibold text-[#EAD8CA]">Added</span>
+          </div>
+        </div>
+      )}
+
       {/* Product Image Thumbnail / Container */}
       <div className={`w-full aspect-square rounded-xl bg-gradient-to-br ${getThumbnailTheme()} flex flex-col items-center justify-center relative overflow-hidden mb-2.5 transition-transform group-hover:scale-[1.02]`}>
         {/* Soft cup icon representation */}
@@ -64,8 +82,8 @@ export function ProductCard({
         {/* Size Badge */}
         <div className="absolute top-2 right-2">
           {isSingleVariant ? (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/90 text-[#6F452A] shadow-xs">
-              1 Size
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/95 text-[#6F452A] shadow-xs flex items-center gap-0.5 border border-[#EFE8DE]">
+              <span>1 Size</span>
             </span>
           ) : (
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#6F452A] text-white shadow-xs">
