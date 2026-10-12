@@ -3,17 +3,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  TrendingUp,
-  Banknote,
   QrCode,
-  ShoppingBag,
   Award,
   RefreshCw,
   Clock,
   ChevronRight,
   Moon,
-  Wallet,
-  Receipt
+  Wallet
 } from "lucide-react";
 import {
   BarChart,
@@ -193,7 +189,7 @@ export function DashboardView({
   const totalSalesNum = parseFloat(metrics.totalSales) || 0;
   const cashSalesNum = parseFloat(metrics.cashSales) || 0;
   const gcashNetNum = parseFloat(metrics.gcashNet) || 0;
-  const gcashFeesNum = parseFloat(metrics.gcashFees) || 0;
+
 
   return (
     <div className="max-w-md w-full mx-auto px-4 pt-3 pb-28 space-y-4">
@@ -233,7 +229,7 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* 2x2 Financial Quick Grid with Distinct Ambient Personalities */}
+      {/* Payment Split Cards (Cash vs GCash) */}
       <div className="grid grid-cols-2 gap-3">
         {/* 1. Cash (Warm Soft Caramel) */}
         <div className="p-4 rounded-2xl bg-[#FAF4EE] border border-[#EAD8CA] shadow-cafe-sm flex flex-col justify-between hover:border-[#6F452A]/40 transition-colors">
@@ -264,62 +260,11 @@ export function DashboardView({
           <div className="font-serif text-lg font-bold text-[#007DFE]">
             ₱ {gcashNetNum.toLocaleString()}
           </div>
-          <span className="text-[10px] text-[#5B8FB9] mt-0.5 font-medium">Net received</span>
-        </div>
-
-        {/* 3. GCash Fees (Subtle Soft Peach) */}
-        <div className="p-4 rounded-2xl bg-[#FFF6F0] border border-[#FBD9C3] shadow-cafe-sm flex flex-col justify-between hover:border-[#D25E1A]/40 transition-colors">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-[#FFE8D6] text-[#D25E1A] flex items-center justify-center shadow-2xs">
-              <Receipt className="w-3.5 h-3.5 stroke-[2.2]" />
-            </div>
-            <span className="text-[11px] font-bold text-[#D25E1A]">
-              GCash Fees
-            </span>
-          </div>
-          <div className="font-serif text-lg font-bold text-[#D25E1A]">
-            ₱ {gcashFeesNum.toFixed(2)}
-          </div>
-          <span className="text-[10px] text-[#A86E4B] mt-0.5 font-medium">Deducted fee</span>
-        </div>
-
-        {/* 4. Net Sales (Soft Emerald Highlight) */}
-        <div className="p-4 rounded-2xl bg-[#F0FAF2] border border-[#C8EAD0] shadow-cafe-sm flex flex-col justify-between hover:border-[#256A38]/40 transition-colors">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-[#DCF3E1] text-[#256A38] flex items-center justify-center shadow-2xs">
-              <TrendingUp className="w-3.5 h-3.5 stroke-[2.2]" />
-            </div>
-            <span className="text-[11px] font-bold text-[#256A38]">
-              Net Sales
-            </span>
-          </div>
-          <div className="font-serif text-lg font-bold text-[#256A38]">
-            ₱ {(cashSalesNum + gcashNetNum).toLocaleString()}
-          </div>
-          <span className="text-[10px] text-[#2E7D46] mt-0.5 font-medium">Realized income</span>
+          <span className="text-[10px] text-[#5B8FB9] mt-0.5 font-medium">Digital received</span>
         </div>
       </div>
 
-      {/* Daily Cash Balancing Shift Close Action Card */}
-      <button
-        onClick={onOpenClosing}
-        className="w-full p-4 rounded-2xl bg-[#6F452A] text-white shadow-cafe flex items-center justify-between hover:bg-[#5A361F] transition-all cursor-pointer group active:scale-[0.99]"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white">
-            <Moon className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <h3 className="font-serif text-sm font-bold text-white">
-              Daily Cash Balancing (Shift Close)
-            </h3>
-            <p className="text-[11px] text-[#E5DCD0]">
-              Count cash drawer &amp; audit shift variance
-            </p>
-          </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-0.5 transition-transform" />
-      </button>
+
 
       {/* Order Status Section (Matching 3.jpg Screen 2 Donut Card) */}
       <div className="p-5 rounded-2xl bg-white border border-[#EFE8DE] shadow-cafe space-y-4">
@@ -539,6 +484,21 @@ export function DashboardView({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Floating Daily Cash Balancing Shift Close Button (Bottom Right) */}
+      <div className="fixed bottom-20 inset-x-0 z-30 px-4 max-w-md mx-auto pointer-events-none flex justify-end">
+        <button
+          type="button"
+          onClick={onOpenClosing}
+          className="pointer-events-auto flex items-center gap-2 py-2.5 px-4 rounded-full bg-gradient-to-r from-[#8C5837] via-[#7B4D30] to-[#6F452A] text-white font-bold text-xs shadow-cafe-lg border border-[#D49E78]/50 hover:brightness-110 active:scale-95 transition-all cursor-pointer group select-none"
+          title="Daily Cash Balancing (Shift Close)"
+        >
+          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-amber-200 group-hover:rotate-12 transition-transform">
+            <Moon className="w-3 h-3" />
+          </div>
+          <span className="tracking-tight text-white font-serif">Shift Close</span>
+        </button>
       </div>
     </div>
   );

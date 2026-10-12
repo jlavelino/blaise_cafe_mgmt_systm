@@ -131,7 +131,7 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
               </div>
             ) : (
               <div className="flex justify-between text-[11px] text-[#8C7B70] pt-1 border-t border-[#EFE8DE]">
-                <span>Net in GCash (after fees):</span>
+                <span>GCash Received:</span>
                 <span className="font-bold text-[#007DFE]">₱{netNum.toFixed(2)}</span>
               </div>
             )}

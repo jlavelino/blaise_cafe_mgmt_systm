@@ -139,9 +139,7 @@ export function DailyClosingModal({
 
   const totalSalesNum = data ? parseFloat(data.preview.totalSales) : 0;
   const gcashGrossNum = data ? parseFloat(data.preview.gcashGross) : 0;
-  const gcashFeesNum = data ? parseFloat(data.preview.gcashFees) : 0;
-  const gcashNetNum = data ? parseFloat(data.preview.gcashNet) : 0;
-  const netSalesNum = expectedCash + gcashNetNum;
+
 
   // Submit Handler
   const handleSubmitClosing = async () => {
@@ -257,13 +255,6 @@ export function DailyClosingModal({
               </div>
 
               <div className="flex justify-between items-center text-xs text-[#8C7B70]">
-                <span>Total Sales:</span>
-                <span className="font-bold text-[#2D1C13]">
-                  ₱{totalSalesNum.toLocaleString("en-US", { minimumFractionDigits: 0 })}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs text-[#8C7B70]">
                 <span>Cash:</span>
                 <span className="font-bold text-[#2D1C13]">
                   ₱{expectedCash.toLocaleString("en-US", { minimumFractionDigits: 0 })}
@@ -277,17 +268,10 @@ export function DailyClosingModal({
                 </span>
               </div>
 
-              <div className="flex justify-between items-center text-xs text-[#8C7B70]">
-                <span>GCash Fees:</span>
-                <span className="font-bold text-[#D25E1A]">
-                  ₱{gcashFeesNum.toFixed(2)}
-                </span>
-              </div>
-
-              {/* Net Sales Solid Roast Banner (Matching 4.jpg Screen 8) */}
+              {/* Total Sales Solid Roast Banner */}
               <div className="p-3 rounded-xl bg-[#6F452A] text-white flex items-center justify-between font-bold text-sm shadow-xs mt-1">
-                <span className="font-serif">Net Sales</span>
-                <span className="font-serif text-base">₱{netSalesNum.toLocaleString("en-US", { minimumFractionDigits: 0 })}</span>
+                <span className="font-serif">Total Sales</span>
+                <span className="font-serif text-base">₱{totalSalesNum.toLocaleString("en-US", { minimumFractionDigits: 0 })}</span>
               </div>
             </div>
 
