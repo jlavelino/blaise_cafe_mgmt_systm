@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Coffee, Printer, PlusCircle, X } from "lucide-react";
+import { CheckCircle2, Coffee, PlusCircle, X } from "lucide-react";
 
 export interface CompletedOrderData {
   id: string;
@@ -114,46 +114,38 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
 
           {/* Totals */}
           <div className="space-y-1 text-xs">
-            <div className="flex justify-between font-bold text-sm pt-1">
+            <div className="flex justify-between items-baseline font-bold text-sm pt-1">
               <span className="text-[#2D1C13]">Total:</span>
-              <span className="font-serif text-base text-[#6F452A]">₱{totalNum.toFixed(0)}</span>
+              <span className="font-sans font-extrabold text-base tracking-tight text-[#6F452A]">₱{totalNum.toFixed(0)}</span>
             </div>
 
-            <div className="flex justify-between text-[#8C7B70] text-[11px]">
+            <div className="flex justify-between items-center text-[#8C7B70] text-[11px]">
               <span>Payment ({order.payment.method}):</span>
-              <span>₱{tenderedNum.toFixed(0)}</span>
+              <span className="font-sans font-medium">₱{tenderedNum.toFixed(0)}</span>
             </div>
 
             {order.payment.method === "CASH" ? (
-              <div className="flex justify-between font-bold text-[#256A38] text-xs pt-1 border-t border-[#EFE8DE]">
+              <div className="flex justify-between items-baseline font-bold text-[#256A38] text-xs pt-1 border-t border-[#EFE8DE]">
                 <span>Change Given:</span>
-                <span>₱{changeNum.toFixed(0)}</span>
+                <span className="font-sans font-extrabold text-sm tracking-tight">₱{changeNum.toFixed(0)}</span>
               </div>
             ) : (
-              <div className="flex justify-between text-[11px] text-[#8C7B70] pt-1 border-t border-[#EFE8DE]">
+              <div className="flex justify-between items-baseline text-[11px] text-[#8C7B70] pt-1 border-t border-[#EFE8DE]">
                 <span>GCash Received:</span>
-                <span className="font-bold text-[#007DFE]">₱{netNum.toFixed(2)}</span>
+                <span className="font-sans font-bold text-[#007DFE]">₱{netNum.toFixed(2)}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="space-y-2 pt-1">
+        <div className="pt-1">
           <button
             onClick={onClose}
             className="w-full py-3.5 px-4 rounded-full font-bold text-sm bg-[#6F452A] text-white hover:bg-[#5A361F] active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>New Order</span>
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="w-full py-2.5 px-4 rounded-full font-semibold text-xs text-[#8C7B70] hover:text-[#2D1C13] border border-[#EFE8DE] hover:bg-[#F5EFEB] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print Receipt</span>
           </button>
         </div>
       </div>

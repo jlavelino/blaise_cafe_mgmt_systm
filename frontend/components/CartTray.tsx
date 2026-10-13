@@ -170,7 +170,7 @@ export function CartTray({ onProceedToCheckout }: CartTrayProps) {
       )}
 
       {/* Floating Quick-Checkout Bar (Pill shaped, floating above Bottom Nav) */}
-      <div className="fixed bottom-16 sm:bottom-18 inset-x-0 z-30 px-3 max-w-md mx-auto pointer-events-none">
+      <div className="fixed bottom-[74px] sm:bottom-20 inset-x-0 z-30 px-3 max-w-md mx-auto pointer-events-none">
         <div
           className={`pointer-events-auto rounded-full bg-[#2D1C13] text-white border border-[#D49E78]/50 shadow-2xl p-1.5 pl-3 flex items-center justify-between transition-all select-none ${
             isBouncing ? "animate-pop-bounce ring-4 ring-[#D49E78]/50 scale-[1.03]" : ""
@@ -179,7 +179,7 @@ export function CartTray({ onProceedToCheckout }: CartTrayProps) {
           {/* Left section: Open Cart Drawer */}
           <button
             onClick={() => setIsCartOpen(true)}
-            className="flex items-center gap-2.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer py-1 text-left min-w-0 flex-1"
+            className="flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all cursor-pointer py-1 text-left min-w-0 flex-1"
             title="Tap to review order items"
           >
             <div className="relative w-8 h-8 rounded-full bg-[#6F452A] text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm border border-[#D49E78]/40">
@@ -194,7 +194,7 @@ export function CartTray({ onProceedToCheckout }: CartTrayProps) {
                 {itemCount} {itemCount === 1 ? "item" : "items"}
               </span>
               <span className="text-white/40">•</span>
-              <span className="font-serif text-sm font-bold text-white tracking-tight">
+              <span className="font-sans text-sm font-extrabold text-white tracking-normal">
                 ₱{subtotal.toFixed(0)}
               </span>
             </div>

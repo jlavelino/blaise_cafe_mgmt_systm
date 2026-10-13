@@ -2,16 +2,12 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { SubmitDailyClosingSchema } from "../schemas/closingSchema";
 import { Prisma } from "@prisma/client";
+import { getManilaDayBounds } from "../lib/dateUtils";
 
 // Daily closing controller for shift reconciliation
 
-/**
- * Helper to get clean UTC/local start and end of day
- */
-function getDayBounds(dateObj: Date = new Date()) {
-  const startOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0, 0);
-  const endOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59, 999);
-  return { startOfDay, endOfDay };
+function getDayBounds() {
+  return getManilaDayBounds();
 }
 
 /**

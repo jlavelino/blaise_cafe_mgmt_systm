@@ -344,8 +344,8 @@ export function DashboardView({
         </div>
 
         <div className="h-36 w-full pt-2">
-          {hourlyTrends.some((h) => h.sales > 0) ? (
-            <ResponsiveContainer width="100%" height="100%">
+          {hourlyTrends.some((h) => h.sales > 0 || h.orders > 0) ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={120}>
               <BarChart data={hourlyTrends}>
                 <XAxis
                   dataKey="hourLabel"
@@ -362,7 +362,7 @@ export function DashboardView({
                       return (
                         <div className="p-2 rounded-xl bg-white border border-[#EFE8DE] text-[11px] shadow-cafe">
                           <p className="font-bold text-[#2D1C13]">{item.hourLabel}</p>
-                          <p className="text-[#6F452A] font-semibold">₱{item.sales} ({item.orders} orders)</p>
+                          <p className="text-[#6F452A] font-semibold">₱{Number(item.sales).toLocaleString()} ({item.orders} orders)</p>
                         </div>
                       );
                     }

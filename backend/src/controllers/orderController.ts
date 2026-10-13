@@ -2,19 +2,14 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { CreateOrderSchema } from "../schemas/orderSchema";
 import { Prisma } from "@prisma/client";
+import { getManilaDayBounds } from "../lib/dateUtils";
 
 /**
  * Generate human-friendly order number: ORD-YYYYMMDD-XXXX
  */
 async function generateOrderNumber(tx: Prisma.TransactionClient): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const dateStr = `${year}${month}${day}`;
-
-  const startOfDay = new Date(year, now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  const endOfDay = new Date(year, now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const { startOfDay, endOfDay, dateStr } = getManilaDayBounds();
+  const dateFormatted = dateStr.replace(/-/g, "");
 
   const countToday = await tx.order.count({
     where: {
@@ -26,7 +21,7 @@ async function generateOrderNumber(tx: Prisma.TransactionClient): Promise<string
   });
 
   const sequence = String(countToday + 1).padStart(4, "0");
-  return `ORD-${dateStr}-${sequence}`;
+  return `ORD-${dateFormatted}-${sequence}`;
 }
 
 /**
