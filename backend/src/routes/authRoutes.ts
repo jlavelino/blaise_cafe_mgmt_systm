@@ -18,12 +18,15 @@ router.get("/me", requireOwnerAuth, (req: Request, res: Response) => {
     return;
   }
 
+  const ownerEmail = (process.env.OWNER_EMAIL || "jhonleovil@gmail.com").toLowerCase();
+  const isOwner = user.email?.toLowerCase() === ownerEmail;
+
   res.status(200).json({
     success: true,
     data: {
       id: user.id,
       email: user.email,
-      role: "owner",
+      role: isOwner ? "owner" : "staff",
       lastSignInAt: user.last_sign_in_at
     }
   });
