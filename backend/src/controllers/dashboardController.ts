@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
+import { getManilaDayBounds, getManilaHour } from "../lib/dateUtils";
 
 /**
  * GET /api/dashboard/today
@@ -7,9 +8,7 @@ import { prisma } from "../lib/prisma";
  */
 export async function getTodayDashboard(_req: Request, res: Response): Promise<void> {
   try {
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const { startOfDay, endOfDay, dateStr } = getManilaDayBounds();
 
     // Fetch all active/completed orders today with items and payment
     const todayOrders = await prisma.order.findMany({
@@ -39,9 +38,9 @@ export async function getTodayDashboard(_req: Request, res: Response): Promise<v
       { name: string; quantity: number; revenue: number }
     >();
 
-    // Prepare 24-hour slots or business hours
+    // Prepare business hour slots (7 AM to 10 PM) in Manila time
     const hourlyMap = new Map<number, { hourLabel: string; sales: number; orders: number }>();
-    for (let h = 8; h <= 21; h++) {
+    for (let h = 7; h <= 22; h++) {
       const label = h === 12 ? "12 PM" : h > 12 ? `${h - 12} PM` : `${h} AM`;
       hourlyMap.set(h, { hourLabel: label, sales: 0, orders: 0 });
     }
@@ -62,13 +61,15 @@ export async function getTodayDashboard(_req: Request, res: Response): Promise<v
         }
       }
 
-      // Hourly Trend
-      const orderHour = new Date(order.createdAt).getHours();
-      if (hourlyMap.has(orderHour)) {
-        const slot = hourlyMap.get(orderHour)!;
-        slot.sales += orderTotal;
-        slot.orders += 1;
+      // Hourly Trend in Manila Time (UTC+8)
+      const orderHour = getManilaHour(new Date(order.createdAt));
+      if (!hourlyMap.has(orderHour)) {
+        const label = orderHour === 0 ? "12 AM" : orderHour === 12 ? "12 PM" : orderHour > 12 ? `${orderHour - 12} PM` : `${orderHour} AM`;
+        hourlyMap.set(orderHour, { hourLabel: label, sales: 0, orders: 0 });
       }
+      const slot = hourlyMap.get(orderHour)!;
+      slot.sales += orderTotal;
+      slot.orders += 1;
 
       // Product Performance
       for (const item of order.items) {
@@ -113,13 +114,15 @@ export async function getTodayDashboard(_req: Request, res: Response): Promise<v
       .sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue)
       .slice(0, 5);
 
-    // Convert hourly map to array
-    const hourlyTrends = Array.from(hourlyMap.values());
+    // Convert hourly map to sorted array by hour
+    const hourlyTrends = Array.from(hourlyMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, val]) => val);
 
     res.status(200).json({
       success: true,
       data: {
-        date: now.toISOString().split("T")[0],
+        date: dateStr,
         metrics: {
           totalSales: totalSales.toFixed(2),
           orderCount,

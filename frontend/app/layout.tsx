@@ -20,8 +20,13 @@ export const metadata: Metadata = {
   title: "Blaise Café — Management Portal",
   description: "Artisanal Coffee Shop Management & POS System for Blaise Café Owner",
   icons: {
-    icon: "/Blaise_Cafe_Logo.png",
-    apple: "/Blaise_Cafe_Logo.png",
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png" },
+    ],
   },
 };
 
