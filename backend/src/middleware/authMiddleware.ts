@@ -49,15 +49,32 @@ export async function requireOwnerAuth(
     }
 
     const authenticatedUser = data.user;
-    const ownerEmail = (process.env.OWNER_EMAIL || "jhonleovil@gmail.com").toLowerCase();
+    const userEmail = authenticatedUser.email?.toLowerCase();
 
-    // Verify user is strictly the Blaise Café owner
-    if (!authenticatedUser.email || authenticatedUser.email.toLowerCase() !== ownerEmail) {
+    if (!userEmail) {
       res.status(403).json({
         success: false,
-        message: "Forbidden: Access restricted to Blaise Café owner only"
+        message: "Forbidden: Authenticated user does not have an associated email"
       });
       return;
+    }
+
+    // Optional strict whitelist enforcement via STRICT_OWNER_ONLY=true
+    // By default, any user manually created by the owner in the Supabase project is authorized.
+    if (process.env.STRICT_OWNER_ONLY === "true") {
+      const allowedEmails = (process.env.ALLOWED_EMAILS || process.env.OWNER_EMAIL || "jhonleovil@gmail.com")
+        .toLowerCase()
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+
+      if (!allowedEmails.includes(userEmail)) {
+        res.status(403).json({
+          success: false,
+          message: "Forbidden: Access restricted to authorized Blaise Café users only"
+        });
+        return;
+      }
     }
 
     // Attach user to request object

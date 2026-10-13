@@ -11,11 +11,19 @@ export default function LoginPage() {
   const { user, loading: authLoading } = useAuth();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [email, setEmail] = useState("jhonleovil@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Load last used email on client
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedEmail = localStorage.getItem("blaise_last_email");
+      setEmail(savedEmail || "jhonleovil@gmail.com");
+    }
+  }, []);
 
   // If already authenticated, redirect straight to main page
   useEffect(() => {
@@ -42,6 +50,9 @@ export default function LoginPage() {
       }
 
       if (data.session) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("blaise_last_email", email.trim());
+        }
         router.replace("/");
       }
     } catch {
@@ -162,7 +173,7 @@ export default function LoginPage() {
                   Sign In to Blaise Café
                 </h3>
                 <p className="text-[11px] text-[#8C7B70]">
-                  Enter your owner credentials to continue
+                  Enter your credentials to continue
                 </p>
               </div>
               <button
@@ -194,7 +205,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="jhonleovil@gmail.com"
+                    placeholder="name@example.com"
                     className="w-full pl-10 pr-3.5 py-3 rounded-xl bg-[#FBF8F2] border border-[#EFE8DE] text-[#2D1C13] text-sm focus:outline-none focus:ring-2 focus:ring-[#6F452A]/40 focus:border-[#6F452A] transition-all"
                   />
                 </div>
