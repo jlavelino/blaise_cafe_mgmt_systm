@@ -58,18 +58,18 @@ export function isValidEMVCo(payload: string): boolean {
 }
 
 /**
- * Default QRPH Template decoded from Test_Gcash_QRcode.jpg
+ * Default QRPH Template decoded from Gcash_Owner.jpg
  * - Initiator: Static (010211)
  * - Provider: GXCHPHM2XXX (GCash / InstaPay)
  * - Currency: 608 (PHP)
  * - Country: PH
- * - Account Name: AL***S EU***E F.
+ * - Account Name: CL**T CE***C A.
  * - Location: Pigdaulan
  */
 export const DEFAULT_QRPH_TEMPLATE =
-  "00020101021127830012com.p2pqrpay0111GXCHPHM2XXX02089996440303152170200000006560417DWQM4TK3JDO6B18Q35204601653036085802PH5916AL***S EU***E F.6009Pigdaulan6104123463043C3E";
+  "00020101021127830012com.p2pqrpay0111GXCHPHM2XXX02089996440303152170200000006560417DWQM4TK3JDO8VAL6G5204601653036085802PH5915CL**T CE***C A.6009Pigdaulan610412346304331C";
 
-export const QRPH_STORAGE_KEY = "blaise_cafe_merchant_qrph_template_v2";
+export const QRPH_STORAGE_KEY = "blaise_cafe_merchant_qrph_template_v3";
 
 /**
  * Extracts the merchant/account holder name (Tag 59) from the payload
